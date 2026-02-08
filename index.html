@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Man Cave Explorer - A Roguelike Adventure</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    color: #c8c8c8;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  #title-screen, #game-screen, #death-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100vh;
+  }
+
+  #title-screen.active, #game-screen.active, #death-screen.active {
+    display: flex;
+  }
+
+  #title-screen pre {
+    color: #ff9900;
+    font-size: 14px;
+    line-height: 1.2;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
+  }
+
+  #title-screen .subtitle {
+    color: #888;
+    font-size: 16px;
+    margin-top: 20px;
+  }
+
+  #title-screen .start-prompt {
+    color: #4fc3f7;
+    font-size: 18px;
+    margin-top: 40px;
+    animation: blink 1.2s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  #game-screen {
+    justify-content: flex-start;
+    padding-top: 10px;
+  }
+
+  #hud {
+    display: flex;
+    gap: 30px;
+    padding: 8px 20px;
+    background: #1a1a2e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    min-width: 600px;
+    justify-content: center;
+  }
+
+  #hud .stat { display: flex; gap: 6px; }
+  #hud .label { color: #888; }
+  #hud .hp { color: #ff4444; }
+  #hud .atk { color: #ff9900; }
+  #hud .def { color: #4fc3f7; }
+  #hud .gold { color: #ffd700; }
+  #hud .level { color: #aa77ff; }
+  #hud .xp { color: #66ff66; }
+
+  #map {
+    font-size: 16px;
+    line-height: 1.1;
+    letter-spacing: 2px;
+    white-space: pre;
+    background: #0d0d1a;
+    padding: 10px;
+    border: 1px solid #222;
+    border-radius: 4px;
+  }
+
+  #log {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 4px;
+    min-width: 600px;
+    max-width: 750px;
+    height: 100px;
+    overflow-y: auto;
+    font-size: 13px;
+    color: #aaa;
+  }
+
+  #log .msg { margin: 2px 0; }
+  #log .msg.combat { color: #ff6666; }
+  #log .msg.pickup { color: #ffd700; }
+  #log .msg.info { color: #4fc3f7; }
+  #log .msg.levelup { color: #66ff66; }
+  #log .msg.descend { color: #aa77ff; }
+
+  #controls {
+    margin-top: 8px;
+    color: #555;
+    font-size: 12px;
+  }
+
+  #death-screen pre {
+    color: #ff4444;
+    font-size: 14px;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
+  }
+
+  #death-screen .stats {
+    color: #aaa;
+    margin-top: 20px;
+    font-size: 16px;
+    line-height: 1.8;
+    text-align: center;
+  }
+
+  #death-screen .restart-prompt {
+    color: #4fc3f7;
+    font-size: 18px;
+    margin-top: 30px;
+    animation: blink 1.2s infinite;
+  }
+
+  #win-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100vh;
+  }
+
+  #win-screen.active { display: flex; }
+
+  #win-screen pre {
+    color: #ffd700;
+    font-size: 14px;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  }
+
+  #win-screen .stats {
+    color: #aaa;
+    margin-top: 20px;
+    font-size: 16px;
+    line-height: 1.8;
+    text-align: center;
+  }
+
+  #win-screen .restart-prompt {
+    color: #4fc3f7;
+    font-size: 18px;
+    margin-top: 30px;
+    animation: blink 1.2s infinite;
+  }
+</style>
+</head>
+<body>
+
+<!-- TITLE SCREEN -->
+<div id="title-screen" class="active">
+<pre>
+ __  __               ____
+|  \/  | __ _ _ __   / ___|__ ___   _____
+| |\/| |/ _` | '_ \ | |   / _` \ \ / / _ \
+| |  | | (_| | | | || |__| (_| |\ V /  __/
+|_|  |_|\__,_|_| |_| \____\__,_| \_/ \___|
+
+ _____            _
+| ____|_  ___ __ | | ___  _ __ ___ _ __
+|  _| \ \/ / '_ \| |/ _ \| '__/ _ \ '__|
+| |___ >  <| |_) | | (_) | | |  __/ |
+|_____/_/\_\ .__/|_|\___/|_|  \___|_|
+            |_|
+</pre>
+<div class="subtitle">A Roguelike Dungeon Adventure</div>
+<div class="subtitle" style="color:#666; font-size:13px; margin-top:10px;">
+  Descend 10 floors into the depths. Find treasure. Slay monsters. Survive.
+</div>
+<div class="start-prompt">[ Press ENTER or SPACE to begin ]</div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <div id="hud">
+    <div class="stat"><span class="label">HP:</span> <span class="hp" id="hud-hp"></span></div>
+    <div class="stat"><span class="label">ATK:</span> <span class="atk" id="hud-atk"></span></div>
+    <div class="stat"><span class="label">DEF:</span> <span class="def" id="hud-def"></span></div>
+    <div class="stat"><span class="label">Gold:</span> <span class="gold" id="hud-gold"></span></div>
+    <div class="stat"><span class="label">Floor:</span> <span class="level" id="hud-floor"></span></div>
+    <div class="stat"><span class="label">XP:</span> <span class="xp" id="hud-xp"></span></div>
+  </div>
+  <div id="map"></div>
+  <div id="log"></div>
+  <div id="controls">
+    [WASD / Arrow Keys] Move &amp; Attack &nbsp;|&nbsp; [E] Use Stairs &nbsp;|&nbsp; [R] Rest (costs 1 turn) &nbsp;|&nbsp; [Q] Quaff Potion
+  </div>
+</div>
+
+<!-- DEATH SCREEN -->
+<div id="death-screen">
+<pre>
+ __   __            ____  _          _ _
+ \ \ / /__  _   _  |  _ \(_) ___  __| | |
+  \ V / _ \| | | | | | | | |/ _ \/ _` | |
+   | | (_) | |_| | | |_| | |  __/ (_| |_|
+   |_|\___/ \__,_| |____/|_|\___|\__,_(_)
+</pre>
+<div class="stats" id="death-stats"></div>
+<div class="restart-prompt">[ Press ENTER to try again ]</div>
+</div>
+
+<!-- WIN SCREEN -->
+<div id="win-screen">
+<pre>
+ __     __          __        ___       _
+ \ \   / /__  _   _ \ \      / (_)_ __ | |
+  \ \ / / _ \| | | | \ \ /\ / /| | '_ \| |
+   \ V / (_) | |_| |  \ V  V / | | | | |_|
+    \_/ \___/ \__,_|   \_/\_/  |_|_| |_(_)
+
+  _____ _            ____
+ |_   _| |__   ___  / ___|__ ___   _____
+   | | | '_ \ / _ \| |   / _` \ \ / / _ \
+   | | | | | |  __/| |__| (_| |\ V /  __/
+   |_| |_| |_|\___| \____\__,_| \_/ \___|
+
+  ___ ___   _   _
+ |_ _/ __| | | | | ___  _   _ _ __ ___
+  | |\__ \ | |_| |/ _ \| | | | '__/ __|
+  | ||__) ||  _  | (_) | |_| | |  \__ \
+ |___|____/ |_| |_|\___/ \__,_|_|  |___/
+</pre>
+<div class="stats" id="win-stats"></div>
+<div class="restart-prompt">[ Press ENTER to play again ]</div>
+</div>
+
+<script>
+// ============================================================
+//  MAN CAVE EXPLORER - A Roguelike Dungeon Crawler
+// ============================================================
+
+const COLS = 50;
+const ROWS = 30;
+const MAX_FLOOR = 10;
+const FOV_RADIUS = 6;
+
+// Tile types
+const T = {
+  WALL: '#', FLOOR: '.', CORRIDOR: '.', DOOR: '+',
+  STAIRS_DOWN: '>', STAIRS_UP: '<', WATER: '~',
+};
+
+// Color map for rendering
+const COLOR = {
+  '#': '#444',
+  '.': '#333',
+  '+': '#8B4513',
+  '>': '#aa77ff',
+  '<': '#aa77ff',
+  '~': '#1a4a6e',
+  '@': '#00ff00',
+  // Monsters
+  'r': '#886644', 'R': '#886644',
+  's': '#44aa44', 'S': '#44aa44',
+  'b': '#664422', 'B': '#664422',
+  'g': '#888888', 'G': '#888888',
+  'o': '#22aa22', 'O': '#22aa22',
+  'T': '#446644',
+  'D': '#ff4444',
+  'W': '#aaaaaa',
+  'V': '#6622aa',
+  'L': '#ffaa00',
+  // Items
+  '!': '#ff4488',
+  '$': '#ffd700',
+  '/': '#cc8844',
+  ']': '#4488cc',
+  '*': '#ff9900',
+};
+
+// Monster definitions by floor tier
+const MONSTERS = {
+  rat:       { ch: 'r', name: 'Rat',          hp: 6,  atk: 2, def: 0, xp: 3,  floors: [1,3]  },
+  snake:     { ch: 's', name: 'Snake',         hp: 8,  atk: 3, def: 1, xp: 5,  floors: [1,4]  },
+  bat:       { ch: 'b', name: 'Bat',           hp: 5,  atk: 2, def: 0, xp: 3,  floors: [1,5]  },
+  goblin:    { ch: 'g', name: 'Goblin',        hp: 12, atk: 4, def: 2, xp: 8,  floors: [2,5]  },
+  orc:       { ch: 'o', name: 'Orc',           hp: 18, atk: 6, def: 3, xp: 14, floors: [3,7]  },
+  skeleton:  { ch: 'S', name: 'Skeleton',      hp: 15, atk: 5, def: 4, xp: 12, floors: [3,6]  },
+  troll:     { ch: 'T', name: 'Troll',         hp: 30, atk: 8, def: 5, xp: 22, floors: [5,8]  },
+  golem:     { ch: 'G', name: 'Stone Golem',   hp: 35, atk: 7, def: 8, xp: 25, floors: [5,9]  },
+  wraith:    { ch: 'W', name: 'Wraith',        hp: 22, atk: 10,def: 3, xp: 20, floors: [6,9]  },
+  vampire:   { ch: 'V', name: 'Vampire',       hp: 28, atk: 9, def: 5, xp: 24, floors: [7,10] },
+  dragon:    { ch: 'D', name: 'Cave Dragon',   hp: 50, atk: 14,def: 8, xp: 50, floors: [9,10] },
+  lich:      { ch: 'L', name: 'Lich King',     hp: 60, atk: 12,def: 10,xp: 60, floors: [10,10]},
+};
+
+const ITEM_TYPES = {
+  potion:  { ch: '!', name: 'Health Potion', type: 'potion', heal: 15 },
+  gold:    { ch: '$', name: 'Gold', type: 'gold', amount: [5, 25] },
+  weapon:  { ch: '/', name: 'Weapon', type: 'weapon' },
+  armor:   { ch: ']', name: 'Armor', type: 'armor' },
+  powerup: { ch: '*', name: 'Power Crystal', type: 'powerup' },
+};
+
+const WEAPON_NAMES = [
+  'Rusty Dagger', 'Short Sword', 'Mace', 'Battle Axe',
+  'War Hammer', 'Longsword', 'Halberd', 'Enchanted Blade',
+  'Dragonslayer', 'Sword of Legends'
+];
+
+const ARMOR_NAMES = [
+  'Leather Cap', 'Padded Vest', 'Chain Shirt', 'Iron Shield',
+  'Steel Plate', 'Guardian Helm', 'Mithril Mail', 'Dragon Scale',
+  'Aegis Plate', 'Armor of the Ancients'
+];
+
+// ---- Game State ----
+let state = 'title';
+let player, dungeon, entities, items, visible, explored, log, turnCount;
+
+function initPlayer() {
+  return {
+    x: 0, y: 0, ch: '@',
+    hp: 30, maxHp: 30,
+    atk: 4, def: 2,
+    gold: 0, xp: 0, level: 1,
+    xpNext: 15,
+    floor: 1,
+    potions: 1,
+    weapon: 'Fists',
+    armor: 'Clothes',
+    monstersSlain: 0,
+  };
+}
+
+// ---- Dungeon Generation (BSP) ----
+class Room {
+  constructor(x, y, w, h) {
+    this.x = x; this.y = y; this.w = w; this.h = h;
+    this.cx = Math.floor(x + w / 2);
+    this.cy = Math.floor(y + h / 2);
+  }
+}
+
+function generateDungeon(floor) {
+  const map = Array.from({ length: ROWS }, () => Array(COLS).fill(T.WALL));
+  const rooms = [];
+
+  // Create 5-9 rooms
+  const numRooms = 5 + Math.floor(Math.random() * 5);
+  for (let i = 0; i < numRooms * 3 && rooms.length < numRooms; i++) {
+    const w = 4 + Math.floor(Math.random() * 7);
+    const h = 3 + Math.floor(Math.random() * 5);
+    const x = 1 + Math.floor(Math.random() * (COLS - w - 2));
+    const y = 1 + Math.floor(Math.random() * (ROWS - h - 2));
+
+    const room = new Room(x, y, w, h);
+    let overlaps = false;
+    for (const r of rooms) {
+      if (room.x <= r.x + r.w + 1 && room.x + room.w + 1 >= r.x &&
+          room.y <= r.y + r.h + 1 && room.y + room.h + 1 >= r.y) {
+        overlaps = true;
+        break;
+      }
+    }
+    if (!overlaps) {
+      // Carve room
+      for (let ry = y; ry < y + h; ry++) {
+        for (let rx = x; rx < x + w; rx++) {
+          map[ry][rx] = T.FLOOR;
+        }
+      }
+      rooms.push(room);
+    }
+  }
+
+  // Connect rooms with corridors
+  for (let i = 1; i < rooms.length; i++) {
+    const a = rooms[i - 1];
+    const b = rooms[i];
+    // L-shaped corridor
+    let cx = a.cx, cy = a.cy;
+    const tx = b.cx, ty = b.cy;
+
+    while (cx !== tx) {
+      if (cy >= 0 && cy < ROWS && cx >= 0 && cx < COLS) map[cy][cx] = T.FLOOR;
+      cx += cx < tx ? 1 : -1;
+    }
+    while (cy !== ty) {
+      if (cy >= 0 && cy < ROWS && cx >= 0 && cx < COLS) map[cy][cx] = T.FLOOR;
+      cy += cy < ty ? 1 : -1;
+    }
+  }
+
+  // Add some water pools on deeper floors
+  if (floor >= 3 && Math.random() < 0.5) {
+    const wr = rooms[Math.floor(Math.random() * rooms.length)];
+    const poolX = wr.x + 1 + Math.floor(Math.random() * (wr.w - 2));
+    const poolY = wr.y + 1 + Math.floor(Math.random() * (wr.h - 2));
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const px = poolX + dx, py = poolY + dy;
+        if (py > 0 && py < ROWS - 1 && px > 0 && px < COLS - 1 && map[py][px] === T.FLOOR) {
+          if (Math.random() < 0.6) map[py][px] = T.WATER;
+        }
+      }
+    }
+  }
+
+  // Place stairs
+  const lastRoom = rooms[rooms.length - 1];
+  if (floor < MAX_FLOOR) {
+    map[lastRoom.cy][lastRoom.cx] = T.STAIRS_DOWN;
+  }
+
+  // Place stairs up in first room (except floor 1)
+  if (floor > 1) {
+    map[rooms[0].cy][rooms[0].cx] = T.STAIRS_UP;
+  }
+
+  return { map, rooms };
+}
+
+// ---- Entity placement ----
+function spawnMonsters(rooms, floor) {
+  const ents = [];
+  const eligible = Object.values(MONSTERS).filter(
+    m => floor >= m.floors[0] && floor <= m.floors[1]
+  );
+  if (eligible.length === 0) return ents;
+
+  const count = 3 + Math.floor(Math.random() * 3) + Math.floor(floor * 0.5);
+  for (let i = 0; i < count; i++) {
+    const room = rooms[1 + Math.floor(Math.random() * (rooms.length - 1))]; // skip first room
+    const template = eligible[Math.floor(Math.random() * eligible.length)];
+    const x = room.x + Math.floor(Math.random() * room.w);
+    const y = room.y + Math.floor(Math.random() * room.h);
+
+    // Scale stats with floor
+    const scale = 1 + (floor - template.floors[0]) * 0.1;
+    ents.push({
+      x, y,
+      ch: template.ch,
+      name: template.name,
+      hp: Math.floor(template.hp * scale),
+      maxHp: Math.floor(template.hp * scale),
+      atk: Math.floor(template.atk * scale),
+      def: Math.floor(template.def * scale),
+      xp: template.xp,
+      awake: false,
+    });
+  }
+  return ents;
+}
+
+function spawnItems(rooms, floor, map) {
+  const itms = [];
+  const count = 3 + Math.floor(Math.random() * 4);
+  for (let i = 0; i < count; i++) {
+    const room = rooms[Math.floor(Math.random() * rooms.length)];
+    const x = room.x + Math.floor(Math.random() * room.w);
+    const y = room.y + Math.floor(Math.random() * room.h);
+    if (map[y][x] === T.WALL || map[y][x] === T.WATER) continue;
+
+    const roll = Math.random();
+    let item;
+    if (roll < 0.35) {
+      const amt = ITEM_TYPES.gold.amount[0] + Math.floor(Math.random() * (ITEM_TYPES.gold.amount[1] - ITEM_TYPES.gold.amount[0]) * (1 + floor * 0.2));
+      item = { x, y, ch: '$', name: `${amt} Gold`, type: 'gold', amount: amt };
+    } else if (roll < 0.6) {
+      const heal = ITEM_TYPES.potion.heal + floor * 2;
+      item = { x, y, ch: '!', name: `Health Potion (+${heal})`, type: 'potion', heal };
+    } else if (roll < 0.8) {
+      const tier = Math.min(Math.floor((floor - 1 + Math.random() * 2)), WEAPON_NAMES.length - 1);
+      const bonus = 1 + tier + Math.floor(Math.random() * 2);
+      item = { x, y, ch: '/', name: WEAPON_NAMES[tier], type: 'weapon', atk: bonus };
+    } else if (roll < 0.95) {
+      const tier = Math.min(Math.floor((floor - 1 + Math.random() * 2)), ARMOR_NAMES.length - 1);
+      const bonus = 1 + tier + Math.floor(Math.random() * 2);
+      item = { x, y, ch: ']', name: ARMOR_NAMES[tier], type: 'armor', def: bonus };
+    } else {
+      item = { x, y, ch: '*', name: 'Power Crystal', type: 'powerup' };
+    }
+    itms.push(item);
+  }
+  return itms;
+}
+
+// ---- FOV (simple raycasting) ----
+function computeFOV(px, py, map) {
+  const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+  vis[py][px] = true;
+
+  for (let angle = 0; angle < 360; angle += 1.5) {
+    const rad = angle * Math.PI / 180;
+    const dx = Math.cos(rad);
+    const dy = Math.sin(rad);
+    let x = px + 0.5, y = py + 0.5;
+    for (let d = 0; d < FOV_RADIUS; d++) {
+      x += dx; y += dy;
+      const ix = Math.floor(x), iy = Math.floor(y);
+      if (ix < 0 || ix >= COLS || iy < 0 || iy >= ROWS) break;
+      vis[iy][ix] = true;
+      if (map[iy][ix] === T.WALL) break;
+    }
+  }
+  return vis;
+}
+
+// ---- Rendering ----
+function render() {
+  visible = computeFOV(player.x, player.y, dungeon.map);
+
+  // Mark explored
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if (visible[y][x]) explored[y][x] = true;
+    }
+  }
+
+  let html = '';
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      let ch = ' ';
+      let color = '#111';
+
+      if (visible[y][x]) {
+        // Check for player
+        if (x === player.x && y === player.y) {
+          ch = '@';
+          color = '#00ff00';
+        } else {
+          // Check for monster
+          const ent = entities.find(e => e.x === x && e.y === y && e.hp > 0);
+          if (ent) {
+            ch = ent.ch;
+            color = COLOR[ent.ch] || '#ff0000';
+          } else {
+            // Check for item
+            const itm = items.find(i => i.x === x && i.y === y);
+            if (itm) {
+              ch = itm.ch;
+              color = COLOR[itm.ch] || '#ffffff';
+            } else {
+              ch = dungeon.map[y][x];
+              color = COLOR[ch] || '#333';
+            }
+          }
+        }
+      } else if (explored[y][x]) {
+        ch = dungeon.map[y][x];
+        color = '#1a1a1a';
+      }
+
+      html += `<span style="color:${color}">${escapeHtml(ch)}</span>`;
+    }
+    html += '\n';
+  }
+
+  document.getElementById('map').innerHTML = html;
+
+  // HUD
+  document.getElementById('hud-hp').textContent = `${player.hp}/${player.maxHp}`;
+  document.getElementById('hud-atk').textContent = player.atk;
+  document.getElementById('hud-def').textContent = player.def;
+  document.getElementById('hud-gold').textContent = player.gold;
+  document.getElementById('hud-floor').textContent = `${player.floor}/${MAX_FLOOR}`;
+  document.getElementById('hud-xp').textContent = `${player.xp}/${player.xpNext} (Lv${player.level})`;
+}
+
+function escapeHtml(ch) {
+  if (ch === '<') return '&lt;';
+  if (ch === '>') return '&gt;';
+  if (ch === '&') return '&amp;';
+  return ch;
+}
+
+function addLog(text, cls = 'info') {
+  const el = document.getElementById('log');
+  const div = document.createElement('div');
+  div.className = `msg ${cls}`;
+  div.textContent = text;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  log.push({ text, cls });
+}
+
+// ---- Combat ----
+function attack(attacker, defender, attackerName, defenderName) {
+  const damage = Math.max(1, attacker.atk - defender.def + Math.floor(Math.random() * 3) - 1);
+  defender.hp -= damage;
+  addLog(`${attackerName} hits ${defenderName} for ${damage} damage!`, 'combat');
+
+  if (defender.hp <= 0) {
+    return true; // target died
+  }
+  return false;
+}
+
+function checkLevelUp() {
+  while (player.xp >= player.xpNext) {
+    player.xp -= player.xpNext;
+    player.level++;
+    player.xpNext = Math.floor(player.xpNext * 1.6);
+    const hpGain = 5 + Math.floor(Math.random() * 4);
+    const atkGain = Math.random() < 0.5 ? 1 : 0;
+    const defGain = Math.random() < 0.5 ? 1 : 0;
+    player.maxHp += hpGain;
+    player.hp = Math.min(player.hp + hpGain, player.maxHp);
+    player.atk += atkGain;
+    player.def += defGain;
+    addLog(`LEVEL UP! You are now level ${player.level}! (+${hpGain} HP${atkGain ? ', +1 ATK' : ''}${defGain ? ', +1 DEF' : ''})`, 'levelup');
+  }
+}
+
+// ---- Monster AI ----
+function monsterTurn() {
+  for (const e of entities) {
+    if (e.hp <= 0) continue;
+
+    const dist = Math.abs(e.x - player.x) + Math.abs(e.y - player.y);
+
+    // Wake up if player is near
+    if (dist <= FOV_RADIUS && visible[e.y][e.x]) {
+      e.awake = true;
+    }
+
+    if (!e.awake) continue;
+
+    // If adjacent, attack
+    if (dist === 1) {
+      const killed = attack(e, player, e.name, 'you');
+      if (killed) {
+        showDeathScreen();
+        return;
+      }
+    } else if (dist <= 8) {
+      // Move toward player (simple chase)
+      const dx = Math.sign(player.x - e.x);
+      const dy = Math.sign(player.y - e.y);
+
+      // Try horizontal first, then vertical
+      const moves = Math.random() < 0.5
+        ? [{ x: e.x + dx, y: e.y }, { x: e.x, y: e.y + dy }]
+        : [{ x: e.x, y: e.y + dy }, { x: e.x + dx, y: e.y }];
+
+      for (const m of moves) {
+        if (canMoveTo(m.x, m.y) && !entityAt(m.x, m.y)) {
+          e.x = m.x;
+          e.y = m.y;
+          break;
+        }
+      }
+    }
+  }
+}
+
+function canMoveTo(x, y) {
+  if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return false;
+  const tile = dungeon.map[y][x];
+  return tile !== T.WALL && tile !== T.WATER;
+}
+
+function entityAt(x, y) {
+  return entities.find(e => e.x === x && e.y === y && e.hp > 0) || null;
+}
+
+// ---- Item Pickup ----
+function pickupItems() {
+  const here = items.filter(i => i.x === player.x && i.y === player.y);
+  for (const item of here) {
+    switch (item.type) {
+      case 'gold':
+        player.gold += item.amount;
+        addLog(`You pick up ${item.name}.`, 'pickup');
+        break;
+      case 'potion':
+        player.potions++;
+        addLog(`You pick up a ${item.name}. (${player.potions} potions)`, 'pickup');
+        break;
+      case 'weapon':
+        if (item.atk > player.atk) {
+          player.atk = item.atk;
+          player.weapon = item.name;
+          addLog(`You equip the ${item.name}! (ATK: ${item.atk})`, 'pickup');
+        } else {
+          const sellGold = 5 + item.atk;
+          player.gold += sellGold;
+          addLog(`${item.name} is weaker than your ${player.weapon}. Sold for ${sellGold}g.`, 'pickup');
+        }
+        break;
+      case 'armor':
+        if (item.def > player.def) {
+          player.def = item.def;
+          player.armor = item.name;
+          addLog(`You equip the ${item.name}! (DEF: ${item.def})`, 'pickup');
+        } else {
+          const sellGold = 5 + item.def;
+          player.gold += sellGold;
+          addLog(`${item.name} is weaker than your ${player.armor}. Sold for ${sellGold}g.`, 'pickup');
+        }
+        break;
+      case 'powerup': {
+        const stat = Math.random();
+        if (stat < 0.33) {
+          player.atk += 2;
+          addLog('The Power Crystal surges! +2 ATK!', 'levelup');
+        } else if (stat < 0.66) {
+          player.def += 2;
+          addLog('The Power Crystal glows! +2 DEF!', 'levelup');
+        } else {
+          player.maxHp += 10;
+          player.hp += 10;
+          addLog('The Power Crystal pulses! +10 Max HP!', 'levelup');
+        }
+        break;
+      }
+    }
+    items.splice(items.indexOf(item), 1);
+  }
+}
+
+// ---- Floor transitions ----
+function descendFloor() {
+  if (dungeon.map[player.y][player.x] !== T.STAIRS_DOWN) {
+    addLog('There are no stairs here.', 'info');
+    return false;
+  }
+  player.floor++;
+  if (player.floor > MAX_FLOOR) {
+    showWinScreen();
+    return true;
+  }
+  addLog(`You descend to floor ${player.floor}...`, 'descend');
+  loadFloor();
+  return true;
+}
+
+function loadFloor() {
+  const gen = generateDungeon(player.floor);
+  dungeon = gen;
+  entities = spawnMonsters(gen.rooms, player.floor);
+  items = spawnItems(gen.rooms, player.floor, gen.map);
+  explored = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+
+  // Place player in first room
+  player.x = gen.rooms[0].cx;
+  player.y = gen.rooms[0].cy;
+
+  render();
+}
+
+// ---- Player actions ----
+function movePlayer(dx, dy) {
+  const nx = player.x + dx;
+  const ny = player.y + dy;
+
+  if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return;
+
+  // Check for monster
+  const monster = entityAt(nx, ny);
+  if (monster) {
+    const killed = attack(player, monster, 'You', monster.name);
+    if (killed) {
+      addLog(`${monster.name} is slain!`, 'combat');
+      player.xp += monster.xp;
+      player.monstersSlain++;
+      checkLevelUp();
+    }
+    monsterTurn();
+    turnCount++;
+    render();
+    return;
+  }
+
+  if (!canMoveTo(nx, ny)) return;
+
+  player.x = nx;
+  player.y = ny;
+  pickupItems();
+  monsterTurn();
+  turnCount++;
+  render();
+}
+
+function rest() {
+  if (player.hp < player.maxHp) {
+    player.hp = Math.min(player.hp + 1, player.maxHp);
+    addLog('You rest for a moment. (+1 HP)', 'info');
+  }
+  monsterTurn();
+  turnCount++;
+  render();
+}
+
+function quaffPotion() {
+  if (player.potions <= 0) {
+    addLog('You have no potions!', 'info');
+    return;
+  }
+  const heal = 15 + player.floor * 2;
+  player.potions--;
+  player.hp = Math.min(player.hp + heal, player.maxHp);
+  addLog(`You drink a potion. (+${heal} HP, ${player.potions} left)`, 'pickup');
+  monsterTurn();
+  turnCount++;
+  render();
+}
+
+// ---- Screens ----
+function showScreen(id) {
+  document.querySelectorAll('#title-screen, #game-screen, #death-screen, #win-screen').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showDeathScreen() {
+  state = 'dead';
+  showScreen('death-screen');
+  document.getElementById('death-stats').innerHTML =
+    `You reached <span style="color:#aa77ff">Floor ${player.floor}</span> of ${MAX_FLOOR}<br>` +
+    `Level <span style="color:#66ff66">${player.level}</span> adventurer<br>` +
+    `<span style="color:#ffd700">${player.gold}</span> gold collected<br>` +
+    `<span style="color:#ff6666">${player.monstersSlain}</span> monsters slain<br>` +
+    `<span style="color:#4fc3f7">${turnCount}</span> turns survived`;
+}
+
+function showWinScreen() {
+  state = 'win';
+  showScreen('win-screen');
+  document.getElementById('win-stats').innerHTML =
+    `You conquered all <span style="color:#aa77ff">${MAX_FLOOR}</span> floors!<br>` +
+    `Level <span style="color:#66ff66">${player.level}</span> adventurer<br>` +
+    `<span style="color:#ffd700">${player.gold}</span> gold collected<br>` +
+    `<span style="color:#ff6666">${player.monstersSlain}</span> monsters slain<br>` +
+    `<span style="color:#4fc3f7">${turnCount}</span> turns taken`;
+}
+
+function startGame() {
+  state = 'playing';
+  player = initPlayer();
+  log = [];
+  turnCount = 0;
+  document.getElementById('log').innerHTML = '';
+
+  showScreen('game-screen');
+  addLog('You enter the Man Cave... danger lurks in the darkness.', 'descend');
+  addLog('Find the stairs (>) on each floor. Reach floor 10 to win!', 'info');
+  loadFloor();
+}
+
+// ---- Input ----
+document.addEventListener('keydown', (e) => {
+  if (state === 'title') {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      startGame();
+    }
+    return;
+  }
+
+  if (state === 'dead' || state === 'win') {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      state = 'title';
+      showScreen('title-screen');
+    }
+    return;
+  }
+
+  if (state !== 'playing') return;
+
+  switch (e.key) {
+    case 'ArrowUp': case 'w': case 'W': e.preventDefault(); movePlayer(0, -1); break;
+    case 'ArrowDown': case 's': case 'S': e.preventDefault(); movePlayer(0, 1); break;
+    case 'ArrowLeft': case 'a': case 'A': e.preventDefault(); movePlayer(-1, 0); break;
+    case 'ArrowRight': case 'd': case 'D': e.preventDefault(); movePlayer(1, 0); break;
+    case 'e': case 'E': e.preventDefault(); descendFloor(); render(); break;
+    case 'r': case 'R': e.preventDefault(); rest(); break;
+    case 'q': case 'Q': e.preventDefault(); quaffPotion(); break;
+  }
+});
+</script>
+</body>
+</html>
