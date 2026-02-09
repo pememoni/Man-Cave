@@ -224,11 +224,14 @@
 
 <div id="kb-hint">[WASD] Move & Attack | [E] Stairs | [R] Nap | [Q] Milk</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 // ============================================================
 //  NEKO CAVE 3D ~ A Kawaii Dungeon Crawler
 // ============================================================
+
+// ---- Mobile detection ----
+const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 800;
 
 // ---- Constants ----
 const COLS = 30, ROWS = 22, MAX_FLOOR = 10, FOV_RADIUS = 6;
@@ -241,23 +244,30 @@ scene.background = new THREE.Color(0x08040c);
 scene.fog = new THREE.FogExp2(0x08040c, 0.06);
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({
+  antialias: !isMobile,
+  powerPreference: isMobile ? 'low-power' : 'high-performance',
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
+if (!isMobile) {
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+}
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 document.body.prepend(renderer.domElement);
 
-// Ambient light
-const ambient = new THREE.AmbientLight(0x1a0e2e, 0.3);
+// Ambient light - brighter on mobile since no shadows
+const ambient = new THREE.AmbientLight(0x1a0e2e, isMobile ? 0.6 : 0.3);
 scene.add(ambient);
 
 // Player point light (torch / FOV)
-const playerLight = new THREE.PointLight(0xffeedd, 1.8, 18, 1.5);
-playerLight.castShadow = true;
-playerLight.shadow.mapSize.set(512, 512);
+const playerLight = new THREE.PointLight(0xffeedd, isMobile ? 2.2 : 1.8, 18, 1.5);
+if (!isMobile) {
+  playerLight.castShadow = true;
+  playerLight.shadow.mapSize.set(512, 512);
+}
 scene.add(playerLight);
 
 // Secondary fill light
@@ -282,20 +292,27 @@ const MAT = {
 function createCat() {
   const cat = new THREE.Group();
 
-  // Body
-  const bodyGeo = new THREE.CapsuleGeometry(0.35, 0.5, 8, 12);
+  // Body (cylinder + sphere caps for max compatibility)
   const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf5c490, roughness: 0.7 });
-  const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.rotation.x = Math.PI / 2;
-  body.position.y = 0.45;
-  body.castShadow = true;
-  cat.add(body);
+  const bodyCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.5, 12), bodyMat);
+  bodyCyl.rotation.x = Math.PI / 2;
+  bodyCyl.position.y = 0.45;
+  bodyCyl.castShadow = !isMobile;
+  cat.add(bodyCyl);
+  const capF = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8, 0, Math.PI*2, 0, Math.PI/2), bodyMat);
+  capF.rotation.x = -Math.PI / 2;
+  capF.position.set(0, 0.45, 0.25);
+  cat.add(capF);
+  const capB = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8, 0, Math.PI*2, Math.PI/2, Math.PI/2), bodyMat);
+  capB.rotation.x = -Math.PI / 2;
+  capB.position.set(0, 0.45, -0.25);
+  cat.add(capB);
 
   // Head
   const headGeo = new THREE.SphereGeometry(0.32, 12, 10);
   const head = new THREE.Mesh(headGeo, bodyMat);
   head.position.set(0, 0.65, 0.4);
-  head.castShadow = true;
+  head.castShadow = !isMobile;
   cat.add(head);
 
   // Ears
@@ -346,7 +363,7 @@ function createCat() {
   ]);
   const tailGeo = new THREE.TubeGeometry(tailCurve, 12, 0.06, 6, false);
   const tail = new THREE.Mesh(tailGeo, bodyMat);
-  tail.castShadow = true;
+  tail.castShadow = !isMobile;
   cat.add(tail);
   cat.userData.tail = tail;
 
@@ -356,7 +373,7 @@ function createCat() {
   positions.forEach(p => {
     const leg = new THREE.Mesh(legGeo, bodyMat);
     leg.position.set(...p);
-    leg.castShadow = true;
+    leg.castShadow = !isMobile;
     cat.add(leg);
   });
 
@@ -381,9 +398,9 @@ function createMonsterMesh(name) {
 
   // Body sphere
   const size = name === 'Ry\u016B' ? 0.5 : name === 'Y\u014Dkai King' ? 0.55 : 0.35;
-  const body = new THREE.Mesh(new THREE.SphereGeometry(size, 10, 8), mat);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(size, isMobile?6:10, isMobile?6:8), mat);
   body.position.y = size + 0.1;
-  body.castShadow = true;
+  body.castShadow = !isMobile;
   g.add(body);
 
   // Eyes (glowing)
@@ -456,7 +473,7 @@ function createItemMesh(type) {
       mesh = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), MAT.gold);
       mesh.position.y = 0.3;
   }
-  mesh.castShadow = true;
+  mesh.castShadow = !isMobile;
   g.add(mesh);
   g.userData.bobOffset = Math.random() * Math.PI * 2;
   return g;
@@ -566,42 +583,76 @@ function computeFOV(px, py, map) {
   return vis;
 }
 
-// ---- Build 3D Dungeon ----
+// ---- Build 3D Dungeon (InstancedMesh for performance) ----
 function buildDungeon3D() {
-  if (dungeonGroup) scene.remove(dungeonGroup);
+  if (dungeonGroup) {
+    dungeonGroup.traverse(child => {
+      if (child.geometry) child.geometry.dispose();
+    });
+    scene.remove(dungeonGroup);
+  }
   dungeonGroup = new THREE.Group();
 
+  // Count tiles first
+  let wallCount = 0, floorCount = 0, waterCount = 0;
+  for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++) {
+    const t = dungeon.map[y][x];
+    if (t===T.WALL) wallCount++;
+    else if (t===T.WATER) waterCount++;
+    else floorCount++;
+  }
+
+  // Shared geometries
   const wallGeo = new THREE.BoxGeometry(TILE_SIZE, TILE_SIZE * 1.2, TILE_SIZE);
   const floorGeo = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
 
-  for (let y=0; y<ROWS; y++) {
-    for (let x=0; x<COLS; x++) {
+  // Instanced walls
+  const wallMesh = new THREE.InstancedMesh(wallGeo, MAT.wall, wallCount);
+  wallMesh.receiveShadow = !isMobile;
+  wallMesh.castShadow = !isMobile;
+
+  // Instanced floors
+  const floorMesh = new THREE.InstancedMesh(floorGeo, MAT.floor, floorCount);
+  floorMesh.receiveShadow = !isMobile;
+
+  // Instanced water (if any)
+  let waterMesh = null;
+  if (waterCount > 0) {
+    waterMesh = new THREE.InstancedMesh(floorGeo, MAT.water, waterCount);
+    waterMesh.receiveShadow = !isMobile;
+  }
+
+  const dummy = new THREE.Object3D();
+  let wi = 0, fi = 0, wai = 0;
+
+  for (let y=0;y<ROWS;y++) {
+    for (let x=0;x<COLS;x++) {
       const wx = x * TILE_SIZE, wz = y * TILE_SIZE;
       const tile = dungeon.map[y][x];
 
       if (tile === T.WALL) {
-        const wall = new THREE.Mesh(wallGeo, MAT.wall);
-        wall.position.set(wx, TILE_SIZE * 0.6, wz);
-        wall.receiveShadow = true;
-        wall.castShadow = true;
-        dungeonGroup.add(wall);
+        dummy.position.set(wx, TILE_SIZE * 0.6, wz);
+        dummy.rotation.set(0,0,0);
+        dummy.updateMatrix();
+        wallMesh.setMatrixAt(wi++, dummy.matrix);
+      } else if (tile === T.WATER) {
+        dummy.position.set(wx, 0.01, wz);
+        dummy.rotation.set(-Math.PI/2, 0, 0);
+        dummy.updateMatrix();
+        waterMesh.setMatrixAt(wai++, dummy.matrix);
       } else {
-        // Floor
-        const flr = new THREE.Mesh(floorGeo, tile === T.WATER ? MAT.water : MAT.floor);
-        flr.rotation.x = -Math.PI / 2;
-        flr.position.set(wx, 0.01, wz);
-        flr.receiveShadow = true;
-        dungeonGroup.add(flr);
+        dummy.position.set(wx, 0.01, wz);
+        dummy.rotation.set(-Math.PI/2, 0, 0);
+        dummy.updateMatrix();
+        floorMesh.setMatrixAt(fi++, dummy.matrix);
 
-        // Stairs
+        // Stairs (few enough to be individual meshes)
         if (tile === T.STAIRS_DOWN || tile === T.STAIRS_UP) {
           const stairGeo = new THREE.CylinderGeometry(0.3, 0.5, 0.15, 6);
           const stair = new THREE.Mesh(stairGeo, MAT.stairs);
           stair.position.set(wx, 0.1, wz);
-          stair.receiveShadow = true;
           dungeonGroup.add(stair);
-          // Glow ring
-          const ringGeo = new THREE.TorusGeometry(0.6, 0.05, 8, 20);
+          const ringGeo = new THREE.TorusGeometry(0.6, 0.05, 8, 16);
           const ringMat = new THREE.MeshBasicMaterial({ color: 0xcc88ff, transparent: true, opacity: 0.4 });
           const ring = new THREE.Mesh(ringGeo, ringMat);
           ring.rotation.x = -Math.PI / 2;
@@ -611,6 +662,14 @@ function buildDungeon3D() {
       }
     }
   }
+
+  wallMesh.instanceMatrix.needsUpdate = true;
+  floorMesh.instanceMatrix.needsUpdate = true;
+  if (waterMesh) waterMesh.instanceMatrix.needsUpdate = true;
+
+  dungeonGroup.add(wallMesh);
+  dungeonGroup.add(floorMesh);
+  if (waterMesh) dungeonGroup.add(waterMesh);
   scene.add(dungeonGroup);
 }
 
