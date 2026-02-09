@@ -349,7 +349,7 @@ function createCat() {
   const cat = new THREE.Group();
 
   // Body (cylinder + sphere caps for max compatibility)
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf5c490, roughness: 0.7 });
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff8c00, roughness: 0.6, emissive: 0x662200, emissiveIntensity: 0.15 });
   const bodyCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.5, 12), bodyMat);
   bodyCyl.rotation.x = Math.PI / 2;
   bodyCyl.position.y = 0.45;
@@ -373,7 +373,7 @@ function createCat() {
 
   // Ears
   const earGeo = new THREE.ConeGeometry(0.12, 0.22, 4);
-  const earMat = new THREE.MeshStandardMaterial({ color: 0xffaacc, roughness: 0.6 });
+  const earMat = new THREE.MeshStandardMaterial({ color: 0xff6600, roughness: 0.6 });
   const earL = new THREE.Mesh(earGeo, earMat);
   earL.position.set(-0.18, 0.92, 0.38);
   earL.rotation.z = -0.2;
@@ -1653,8 +1653,8 @@ document.addEventListener('keydown', (e) => {
   switch(e.key) {
     case 'ArrowUp':case 'w':case 'W': e.preventDefault();movePlayer(0,1);break;
     case 'ArrowDown':case 's':case 'S': e.preventDefault();movePlayer(0,-1);break;
-    case 'ArrowLeft':case 'a':case 'A': e.preventDefault();movePlayer(-1,0);break;
-    case 'ArrowRight':case 'd':case 'D': e.preventDefault();movePlayer(1,0);break;
+    case 'ArrowLeft':case 'a':case 'A': e.preventDefault();movePlayer(1,0);break;
+    case 'ArrowRight':case 'd':case 'D': e.preventDefault();movePlayer(-1,0);break;
     case 'e':case 'E': e.preventDefault();doStairs();break;
     case 'r':case 'R': e.preventDefault();doRest();break;
     case 'q':case 'Q': e.preventDefault();doPotion();break;
@@ -1672,7 +1672,7 @@ document.querySelectorAll('.dpad-btn[data-dir]').forEach(btn => {
     if(gameState!=='playing')return;
     switch(btn.dataset.dir){
       case 'up':movePlayer(0,1);break;case 'down':movePlayer(0,-1);break;
-      case 'left':movePlayer(-1,0);break;case 'right':movePlayer(1,0);break;
+      case 'left':movePlayer(1,0);break;case 'right':movePlayer(-1,0);break;
       case 'wait':doRest();break;
     }
   };
@@ -1698,7 +1698,7 @@ renderer.domElement.addEventListener('touchend', e=>{
   const dx=t.clientX-tX, dy=t.clientY-tY;
   const d=Math.sqrt(dx*dx+dy*dy);
   if(d<25||Date.now()-tT>500)return;
-  if(Math.abs(dx)>Math.abs(dy)) movePlayer(dx>0?1:-1, 0);
+  if(Math.abs(dx)>Math.abs(dy)) movePlayer(dx>0?-1:1, 0);
   else movePlayer(0, dy>0?-1:1);
   e.preventDefault();
 },{passive:false});
