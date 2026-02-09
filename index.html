@@ -292,8 +292,8 @@ const T = { WALL: '#', FLOOR: '.', STAIRS_DOWN: '>', STAIRS_UP: '<', WATER: '~' 
 
 // ---- Three.js Setup ----
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050014);
-scene.fog = new THREE.FogExp2(0x050014, 0.018);
+scene.background = new THREE.Color(0x0e0828);
+scene.fog = new THREE.FogExp2(0x0e0828, 0.012);
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
 const renderer = new THREE.WebGLRenderer({
@@ -307,19 +307,19 @@ if (!isMobile) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 }
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.8;
 document.body.prepend(renderer.domElement);
 
-// Ambient light - brighter on mobile since no shadows, neon purple tint
-const ambient = new THREE.AmbientLight(0x2a1848, isMobile ? 0.7 : 0.4);
+// Ambient light - bright enough to see the dungeon clearly
+const ambient = new THREE.AmbientLight(0x6644aa, isMobile ? 1.2 : 0.9);
 scene.add(ambient);
 
-// Subtle neon hemisphere light (sky=purple, ground=cyan reflection)
-const hemiLight = new THREE.HemisphereLight(0x220044, 0x003322, 0.25);
+// Neon hemisphere light (sky=purple, ground=cyan reflection)
+const hemiLight = new THREE.HemisphereLight(0x4422aa, 0x006655, 0.6);
 scene.add(hemiLight);
 
 // Player point light (torch / FOV)
-const playerLight = new THREE.PointLight(0xffeedd, isMobile ? 2.2 : 1.8, 18, 1.5);
+const playerLight = new THREE.PointLight(0xffeedd, isMobile ? 3.0 : 2.5, 25, 1.2);
 if (!isMobile) {
   playerLight.castShadow = true;
   playerLight.shadow.mapSize.set(512, 512);
@@ -327,21 +327,21 @@ if (!isMobile) {
 scene.add(playerLight);
 
 // Secondary fill light
-const fillLight = new THREE.PointLight(0xbb88ff, 0.4, 25, 2);
+const fillLight = new THREE.PointLight(0xcc99ff, 0.8, 30, 1.5);
 scene.add(fillLight);
 
 // ---- Materials ----
 const MAT = {
-  wall: new THREE.MeshStandardMaterial({ color: 0x3d2850, roughness: 0.9 }),
-  wallTop: new THREE.MeshStandardMaterial({ color: 0x2a1a3a, roughness: 0.95 }),
-  floor: new THREE.MeshStandardMaterial({ color: 0x1a1225, roughness: 0.8 }),
-  water: new THREE.MeshStandardMaterial({ color: 0x1a3a5e, roughness: 0.3, transparent: true, opacity: 0.7 }),
-  stairs: new THREE.MeshStandardMaterial({ color: 0xcc88ff, roughness: 0.5, emissive: 0x6622aa, emissiveIntensity: 0.4 }),
-  gold: new THREE.MeshStandardMaterial({ color: 0xffdd44, roughness: 0.3, metalness: 0.8, emissive: 0xaa8800, emissiveIntensity: 0.3 }),
-  potion: new THREE.MeshStandardMaterial({ color: 0xffaacc, roughness: 0.2, emissive: 0xff4488, emissiveIntensity: 0.3 }),
-  weapon: new THREE.MeshStandardMaterial({ color: 0xccccdd, roughness: 0.2, metalness: 0.9 }),
-  armor: new THREE.MeshStandardMaterial({ color: 0x6699cc, roughness: 0.4, metalness: 0.6 }),
-  powerup: new THREE.MeshStandardMaterial({ color: 0xffee88, roughness: 0.1, emissive: 0xffaa00, emissiveIntensity: 0.6 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0x5a3870, roughness: 0.8, emissive: 0x1a0e28, emissiveIntensity: 0.15 }),
+  wallTop: new THREE.MeshStandardMaterial({ color: 0x3d2555, roughness: 0.85 }),
+  floor: new THREE.MeshStandardMaterial({ color: 0x2e1e3e, roughness: 0.7, emissive: 0x0c0818, emissiveIntensity: 0.1 }),
+  water: new THREE.MeshStandardMaterial({ color: 0x3366aa, roughness: 0.2, transparent: true, opacity: 0.7, emissive: 0x112244, emissiveIntensity: 0.3 }),
+  stairs: new THREE.MeshStandardMaterial({ color: 0xdd99ff, roughness: 0.4, emissive: 0x8833cc, emissiveIntensity: 0.6 }),
+  gold: new THREE.MeshStandardMaterial({ color: 0xffee55, roughness: 0.3, metalness: 0.8, emissive: 0xccaa22, emissiveIntensity: 0.5 }),
+  potion: new THREE.MeshStandardMaterial({ color: 0xffbbdd, roughness: 0.2, emissive: 0xff5599, emissiveIntensity: 0.5 }),
+  weapon: new THREE.MeshStandardMaterial({ color: 0xddddee, roughness: 0.2, metalness: 0.9, emissive: 0x444466, emissiveIntensity: 0.2 }),
+  armor: new THREE.MeshStandardMaterial({ color: 0x88bbee, roughness: 0.4, metalness: 0.6, emissive: 0x224466, emissiveIntensity: 0.2 }),
+  powerup: new THREE.MeshStandardMaterial({ color: 0xffee88, roughness: 0.1, emissive: 0xffcc22, emissiveIntensity: 0.8 }),
 };
 
 // ---- Cat Builder ----
@@ -586,12 +586,12 @@ function buildNeonCity() {
   skyCanvas.width = 512; skyCanvas.height = 512;
   const sctx = skyCanvas.getContext('2d');
   const grad = sctx.createLinearGradient(0, 0, 0, 512);
-  grad.addColorStop(0, '#020010');
-  grad.addColorStop(0.2, '#0a0030');
-  grad.addColorStop(0.45, '#180848');
-  grad.addColorStop(0.65, '#220a50');
-  grad.addColorStop(0.8, '#1a0638');
-  grad.addColorStop(1, '#0d0220');
+  grad.addColorStop(0, '#060028');
+  grad.addColorStop(0.15, '#140850');
+  grad.addColorStop(0.35, '#281068');
+  grad.addColorStop(0.55, '#351478');
+  grad.addColorStop(0.75, '#2a0e5a');
+  grad.addColorStop(1, '#180840');
   sctx.fillStyle = grad;
   sctx.fillRect(0, 0, 512, 512);
   // Stars
@@ -604,9 +604,9 @@ function buildNeonCity() {
   }
   // Neon haze glow at horizon
   const haze = sctx.createLinearGradient(0, 280, 0, 420);
-  haze.addColorStop(0, 'rgba(100,20,160,0)');
-  haze.addColorStop(0.5, 'rgba(160,40,200,0.12)');
-  haze.addColorStop(1, 'rgba(80,10,120,0)');
+  haze.addColorStop(0, 'rgba(140,40,200,0)');
+  haze.addColorStop(0.5, 'rgba(200,80,255,0.25)');
+  haze.addColorStop(1, 'rgba(100,20,160,0)');
   sctx.fillStyle = haze;
   sctx.fillRect(0, 280, 512, 140);
 
@@ -620,7 +620,7 @@ function buildNeonCity() {
   // --- Ground plane with wet reflection look ---
   const gndGeo = new THREE.PlaneGeometry(400, 400);
   const gndMat = new THREE.MeshStandardMaterial({
-    color: 0x06020e, roughness: 0.4, metalness: 0.6
+    color: 0x120822, roughness: 0.3, metalness: 0.7, emissive: 0x080412, emissiveIntensity: 0.2
   });
   const ground = new THREE.Mesh(gndGeo, gndMat);
   ground.rotation.x = -Math.PI / 2;
@@ -630,7 +630,7 @@ function buildNeonCity() {
 
   // --- Buildings ---
   const bldgCount = isMobile ? 50 : 100;
-  const bldgDarkMat = new THREE.MeshStandardMaterial({ color: 0x08030f, roughness: 0.85, metalness: 0.4 });
+  const bldgDarkMat = new THREE.MeshStandardMaterial({ color: 0x140a22, roughness: 0.7, metalness: 0.5, emissive: 0x060310, emissiveIntensity: 0.15 });
 
   for (let i = 0; i < bldgCount; i++) {
     // Place in ring around dungeon
@@ -767,7 +767,7 @@ function buildNeonCity() {
     const lx = dungeonCX + Math.cos(angle) * dist;
     const lz = dungeonCZ + Math.sin(angle) * dist;
     const lColor = NEON[Math.floor(Math.random() * NEON.length)];
-    const nLight = new THREE.PointLight(lColor, 0.6, 35, 2);
+    const nLight = new THREE.PointLight(lColor, 1.2, 45, 1.5);
     nLight.position.set(lx, 4 + Math.random() * 6, lz);
     cityGroup.add(nLight);
   }
@@ -1626,7 +1626,7 @@ function animate() {
     updateParticles(dt);
 
     // Flickering torch effect
-    playerLight.intensity = (isMobile ? 2.2 : 1.8) + Math.sin(time*8)*0.15 + Math.sin(time*13)*0.1;
+    playerLight.intensity = (isMobile ? 3.0 : 2.5) + Math.sin(time*8)*0.2 + Math.sin(time*13)*0.15;
 
     // Animate neon signs
     updateNeonSigns(time);
@@ -1651,8 +1651,8 @@ document.addEventListener('keydown', (e) => {
   }
   if (gameState!=='playing') return;
   switch(e.key) {
-    case 'ArrowUp':case 'w':case 'W': e.preventDefault();movePlayer(0,-1);break;
-    case 'ArrowDown':case 's':case 'S': e.preventDefault();movePlayer(0,1);break;
+    case 'ArrowUp':case 'w':case 'W': e.preventDefault();movePlayer(0,1);break;
+    case 'ArrowDown':case 's':case 'S': e.preventDefault();movePlayer(0,-1);break;
     case 'ArrowLeft':case 'a':case 'A': e.preventDefault();movePlayer(-1,0);break;
     case 'ArrowRight':case 'd':case 'D': e.preventDefault();movePlayer(1,0);break;
     case 'e':case 'E': e.preventDefault();doStairs();break;
@@ -1671,7 +1671,7 @@ document.querySelectorAll('.dpad-btn[data-dir]').forEach(btn => {
   const handler = () => {
     if(gameState!=='playing')return;
     switch(btn.dataset.dir){
-      case 'up':movePlayer(0,-1);break;case 'down':movePlayer(0,1);break;
+      case 'up':movePlayer(0,1);break;case 'down':movePlayer(0,-1);break;
       case 'left':movePlayer(-1,0);break;case 'right':movePlayer(1,0);break;
       case 'wait':doRest();break;
     }
@@ -1699,7 +1699,7 @@ renderer.domElement.addEventListener('touchend', e=>{
   const d=Math.sqrt(dx*dx+dy*dy);
   if(d<25||Date.now()-tT>500)return;
   if(Math.abs(dx)>Math.abs(dy)) movePlayer(dx>0?1:-1, 0);
-  else movePlayer(0, dy>0?1:-1);
+  else movePlayer(0, dy>0?-1:1);
   e.preventDefault();
 },{passive:false});
 
