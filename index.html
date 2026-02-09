@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
 <title>Man Cave Explorer - A Roguelike Adventure</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -16,6 +16,9 @@
     align-items: center;
     min-height: 100vh;
     overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   #title-screen, #game-screen, #death-screen {
@@ -174,6 +177,127 @@
     margin-top: 30px;
     animation: blink 1.2s infinite;
   }
+
+  /* ---- Touch Controls ---- */
+  #touch-controls {
+    display: none;
+    margin-top: 6px;
+    gap: 8px;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    max-width: 750px;
+    padding: 0 8px;
+  }
+
+  #dpad {
+    display: grid;
+    grid-template-columns: 52px 52px 52px;
+    grid-template-rows: 52px 52px 52px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .dpad-btn {
+    width: 52px;
+    height: 52px;
+    background: #1a1a2e;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #ccc;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .dpad-btn:active { background: #2a2a4e; border-color: #4fc3f7; }
+  .dpad-empty { visibility: hidden; }
+
+  #action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .action-btn {
+    height: 48px;
+    padding: 0 16px;
+    background: #1a1a2e;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #ccc;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .action-btn:active { background: #2a2a4e; border-color: #4fc3f7; }
+  .action-btn.stairs { border-color: #aa77ff; color: #aa77ff; }
+  .action-btn.potion { border-color: #ff4488; color: #ff4488; }
+  .action-btn.rest   { border-color: #4fc3f7; color: #4fc3f7; }
+
+  /* ---- Mobile responsive ---- */
+  @media (max-width: 768px) {
+    #title-screen pre { font-size: 8px; }
+    #title-screen .subtitle { font-size: 14px; }
+    #title-screen .start-prompt { font-size: 16px; }
+    #death-screen pre { font-size: 8px; }
+    #win-screen pre { font-size: 6px; }
+
+    #game-screen { padding-top: 4px; }
+
+    #hud {
+      min-width: auto;
+      width: 100%;
+      gap: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      flex-wrap: wrap;
+      border-radius: 0;
+    }
+
+    #map {
+      font-size: 10px;
+      line-height: 1.05;
+      letter-spacing: 0.5px;
+      padding: 4px;
+      border-radius: 0;
+    }
+
+    #log {
+      min-width: auto;
+      max-width: 100%;
+      width: 100%;
+      height: 50px;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 0;
+    }
+
+    #controls { display: none; }
+    #touch-controls { display: flex; }
+  }
+
+  @media (max-width: 400px) {
+    #map {
+      font-size: 8px;
+      letter-spacing: 0px;
+      line-height: 1.0;
+    }
+
+    #hud { font-size: 10px; gap: 6px; }
+
+    .dpad-btn { width: 44px; height: 44px; font-size: 18px; }
+    #dpad { grid-template-columns: 44px 44px 44px; grid-template-rows: 44px 44px 44px; }
+    .action-btn { height: 40px; font-size: 11px; padding: 0 10px; }
+  }
 </style>
 </head>
 <body>
@@ -198,7 +322,7 @@
 <div class="subtitle" style="color:#666; font-size:13px; margin-top:10px;">
   Descend 10 floors into the depths. Find treasure. Slay monsters. Survive.
 </div>
-<div class="start-prompt">[ Press ENTER or SPACE to begin ]</div>
+<div class="start-prompt" id="start-prompt">[ Press ENTER or Tap to begin ]</div>
 </div>
 
 <!-- GAME SCREEN -->
@@ -216,6 +340,24 @@
   <div id="controls">
     [WASD / Arrow Keys] Move &amp; Attack &nbsp;|&nbsp; [E] Use Stairs &nbsp;|&nbsp; [R] Rest (costs 1 turn) &nbsp;|&nbsp; [Q] Quaff Potion
   </div>
+  <div id="touch-controls">
+    <div id="dpad">
+      <div class="dpad-btn dpad-empty"></div>
+      <div class="dpad-btn" data-dir="up">&#9650;</div>
+      <div class="dpad-btn dpad-empty"></div>
+      <div class="dpad-btn" data-dir="left">&#9664;</div>
+      <div class="dpad-btn" data-dir="wait">&#183;</div>
+      <div class="dpad-btn" data-dir="right">&#9654;</div>
+      <div class="dpad-btn dpad-empty"></div>
+      <div class="dpad-btn" data-dir="down">&#9660;</div>
+      <div class="dpad-btn dpad-empty"></div>
+    </div>
+    <div id="action-buttons">
+      <button class="action-btn stairs" id="btn-stairs">Stairs &#9660;</button>
+      <button class="action-btn potion" id="btn-potion">Potion</button>
+      <button class="action-btn rest" id="btn-rest">Rest</button>
+    </div>
+  </div>
 </div>
 
 <!-- DEATH SCREEN -->
@@ -228,7 +370,7 @@
    |_|\___/ \__,_| |____/|_|\___|\__,_(_)
 </pre>
 <div class="stats" id="death-stats"></div>
-<div class="restart-prompt">[ Press ENTER to try again ]</div>
+<div class="restart-prompt" id="death-prompt">[ Press ENTER or Tap to try again ]</div>
 </div>
 
 <!-- WIN SCREEN -->
@@ -253,7 +395,7 @@
  |___|____/ |_| |_|\___/ \__,_|_|  |___/
 </pre>
 <div class="stats" id="win-stats"></div>
-<div class="restart-prompt">[ Press ENTER to play again ]</div>
+<div class="restart-prompt" id="win-prompt">[ Press ENTER or Tap to play again ]</div>
 </div>
 
 <script>
@@ -901,6 +1043,87 @@ document.addEventListener('keydown', (e) => {
     case 'q': case 'Q': e.preventDefault(); quaffPotion(); break;
   }
 });
+
+// ---- Touch: Tap screens to start/restart ----
+document.getElementById('title-screen').addEventListener('click', () => {
+  if (state === 'title') startGame();
+});
+document.getElementById('death-screen').addEventListener('click', () => {
+  if (state === 'dead') { state = 'title'; showScreen('title-screen'); }
+});
+document.getElementById('win-screen').addEventListener('click', () => {
+  if (state === 'win') { state = 'title'; showScreen('title-screen'); }
+});
+
+// ---- Touch: D-pad buttons ----
+document.querySelectorAll('.dpad-btn[data-dir]').forEach(btn => {
+  btn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (state !== 'playing') return;
+    const dir = btn.dataset.dir;
+    switch (dir) {
+      case 'up':    movePlayer(0, -1); break;
+      case 'down':  movePlayer(0, 1); break;
+      case 'left':  movePlayer(-1, 0); break;
+      case 'right': movePlayer(1, 0); break;
+      case 'wait':  rest(); break;
+    }
+  });
+  btn.addEventListener('click', (e) => {
+    if (state !== 'playing') return;
+    const dir = btn.dataset.dir;
+    switch (dir) {
+      case 'up':    movePlayer(0, -1); break;
+      case 'down':  movePlayer(0, 1); break;
+      case 'left':  movePlayer(-1, 0); break;
+      case 'right': movePlayer(1, 0); break;
+      case 'wait':  rest(); break;
+    }
+  });
+});
+
+// ---- Touch: Action buttons ----
+document.getElementById('btn-stairs').addEventListener('click', () => {
+  if (state === 'playing') { descendFloor(); render(); }
+});
+document.getElementById('btn-potion').addEventListener('click', () => {
+  if (state === 'playing') quaffPotion();
+});
+document.getElementById('btn-rest').addEventListener('click', () => {
+  if (state === 'playing') rest();
+});
+
+// ---- Touch: Swipe on map ----
+let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+const mapEl = document.getElementById('map');
+
+mapEl.addEventListener('touchstart', (e) => {
+  if (state !== 'playing') return;
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+  touchStartTime = Date.now();
+  e.preventDefault();
+}, { passive: false });
+
+mapEl.addEventListener('touchend', (e) => {
+  if (state !== 'playing') return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const elapsed = Date.now() - touchStartTime;
+
+  // Need at least 20px swipe within 500ms
+  if (dist < 20 || elapsed > 500) return;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    movePlayer(dx > 0 ? 1 : -1, 0);
+  } else {
+    movePlayer(0, dy > 0 ? 1 : -1);
+  }
+  e.preventDefault();
+}, { passive: false });
 </script>
 </body>
 </html>
