@@ -3,760 +3,751 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-<title>Neko Cave ~ A Kawaii Dungeon Adventure</title>
+<title>Neko Cave 3D ~ A Kawaii Dungeon Adventure</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap');
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
-    background: #1a1020;
+    background: #0a0510;
     color: #e8d8f0;
-    font-family: 'M PLUS Rounded 1c', 'Courier New', monospace;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
     overflow: hidden;
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
+    width: 100vw; height: 100vh;
   }
+  canvas { display: block; }
 
-  #title-screen, #game-screen, #death-screen {
+  /* ---- Overlay Screens ---- */
+  .overlay {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
     display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100vh;
+    z-index: 100;
+    pointer-events: auto;
   }
-
-  #title-screen.active, #game-screen.active, #death-screen.active {
-    display: flex;
-  }
+  .overlay.active { display: flex; }
 
   #title-screen {
-    background: radial-gradient(ellipse at center, #2a1838 0%, #1a1020 70%);
+    background: radial-gradient(ellipse at center, rgba(42,24,56,0.95) 0%, rgba(10,5,16,0.98) 70%);
   }
-
-  .title-cat {
-    font-size: 80px;
-    line-height: 1;
-    margin-bottom: 10px;
-    animation: float 3s ease-in-out infinite;
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-
+  .title-cat { font-size: 90px; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
   .title-name {
-    font-size: 36px;
-    font-weight: 700;
-    color: #ffb7d5;
-    text-shadow: 0 0 20px rgba(255, 183, 213, 0.4), 0 2px 0 #c4688a;
-    letter-spacing: 4px;
+    font-size: 42px; font-weight: 700; color: #ffb7d5;
+    text-shadow: 0 0 30px rgba(255,183,213,0.5), 0 3px 0 #c4688a;
+    letter-spacing: 6px; margin-top: 8px;
   }
+  .title-sub { color: #d4a0c0; font-size: 18px; margin-top: 4px; letter-spacing: 8px; }
+  .title-desc { color: #a088b0; font-size: 15px; margin-top: 18px; text-align: center; max-width: 400px; line-height: 1.5; }
+  .title-3d { color: #cc88ff; font-size: 13px; margin-top: 8px; }
+  .prompt { color: #ffb7d5; font-size: 18px; margin-top: 35px; animation: blink 1.2s infinite; cursor: pointer; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  .title-jp {
-    font-size: 18px;
-    color: #d4a0c0;
-    margin-top: 4px;
-    letter-spacing: 8px;
-  }
+  #death-screen { background: radial-gradient(ellipse at center, rgba(42,16,32,0.96) 0%, rgba(16,5,10,0.98) 70%); }
+  .death-cat { font-size: 90px; }
+  .death-title { font-size: 34px; font-weight: 700; color: #ff6688; text-shadow: 0 0 20px rgba(255,102,136,0.4); }
+  .screen-stats { color: #c0a0b0; margin-top: 20px; font-size: 16px; line-height: 1.9; text-align: center; }
 
-  #title-screen .subtitle {
-    color: #a088b0;
-    font-size: 15px;
-    margin-top: 18px;
-  }
+  #win-screen { background: radial-gradient(ellipse at center, rgba(40,32,56,0.96) 0%, rgba(10,5,16,0.98) 70%); }
+  .win-cat { font-size: 90px; animation: float 2s ease-in-out infinite; }
+  .win-title { font-size: 34px; font-weight: 700; color: #ffdd44; text-shadow: 0 0 25px rgba(255,221,68,0.5); }
+  .win-sub { color: #d4c0a0; font-size: 16px; margin-top: 6px; }
 
-  #title-screen .start-prompt {
-    color: #ffb7d5;
-    font-size: 18px;
-    margin-top: 35px;
-    animation: blink 1.2s infinite;
-  }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  #game-screen {
-    justify-content: flex-start;
-    padding-top: 8px;
-    background: linear-gradient(180deg, #1a1020 0%, #15101c 100%);
-  }
-
+  /* ---- HUD ---- */
   #hud {
-    display: flex;
-    gap: 20px;
-    padding: 8px 20px;
-    background: linear-gradient(135deg, #2a1838 0%, #1e1228 100%);
-    border: 1px solid #3d2850;
-    border-radius: 12px;
-    margin-bottom: 6px;
-    font-size: 14px;
-    min-width: 600px;
-    justify-content: center;
-  }
-
-  #hud .stat { display: flex; gap: 4px; align-items: center; }
-  #hud .label { color: #8870a0; font-size: 12px; }
-  #hud .hp { color: #ff7799; }
-  #hud .atk { color: #ffaa66; }
-  #hud .def { color: #88ccff; }
-  #hud .gold { color: #ffdd44; }
-  #hud .level { color: #cc88ff; }
-  #hud .xp { color: #88eebb; }
-
-  #map {
-    font-size: 20px;
-    line-height: 1.2;
-    letter-spacing: 0px;
-    white-space: pre;
-    background: linear-gradient(180deg, #110a18 0%, #0d0812 100%);
-    padding: 6px 8px;
-    border: 1px solid #2a1d38;
-    border-radius: 10px;
-    box-shadow: inset 0 0 30px rgba(80, 40, 100, 0.2);
-  }
-
-  #log {
-    margin-top: 6px;
-    padding: 6px 12px;
-    background: #150e1c;
-    border: 1px solid #2a1d38;
-    border-radius: 10px;
-    min-width: 600px;
-    max-width: 750px;
-    height: 85px;
-    overflow-y: auto;
-    font-size: 13px;
-    color: #b8a0c8;
-  }
-
-  #log .msg { margin: 2px 0; }
-  #log .msg.combat { color: #ff8899; }
-  #log .msg.pickup { color: #ffdd66; }
-  #log .msg.info { color: #99bbff; }
-  #log .msg.levelup { color: #88eebb; }
-  #log .msg.descend { color: #cc88ff; }
-
-  #controls {
-    margin-top: 6px;
-    color: #5a4570;
-    font-size: 12px;
-  }
-
-  /* Death Screen */
-  #death-screen {
-    background: radial-gradient(ellipse at center, #2a1020 0%, #1a0a15 70%);
-  }
-
-  .death-cat {
-    font-size: 80px;
-    line-height: 1;
-    margin-bottom: 10px;
-  }
-
-  .death-title {
-    font-size: 32px;
-    font-weight: 700;
-    color: #ff6688;
-    text-shadow: 0 0 20px rgba(255, 102, 136, 0.4);
-  }
-
-  #death-screen .stats {
-    color: #c0a0b0;
-    margin-top: 20px;
-    font-size: 16px;
-    line-height: 1.8;
-    text-align: center;
-  }
-
-  #death-screen .restart-prompt {
-    color: #ffb7d5;
-    font-size: 18px;
-    margin-top: 25px;
-    animation: blink 1.2s infinite;
-  }
-
-  /* Win Screen */
-  #win-screen {
+    position: fixed; top: 0; left: 0; right: 0;
     display: none;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100vh;
-    background: radial-gradient(ellipse at center, #282038 0%, #1a1020 70%);
+    gap: 16px;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, rgba(20,12,30,0.92) 0%, rgba(20,12,30,0) 100%);
+    font-size: 14px; z-index: 50;
+    flex-wrap: wrap;
   }
+  #hud.active { display: flex; }
+  .hud-stat { display: flex; gap: 4px; align-items: center; }
+  .hud-label { font-size: 16px; }
+  .hud-hp { color: #ff7799; }
+  .hud-atk { color: #ffaa66; }
+  .hud-def { color: #88ccff; }
+  .hud-gold { color: #ffdd44; }
+  .hud-floor { color: #cc88ff; }
+  .hud-xp { color: #88eebb; }
 
-  #win-screen.active { display: flex; }
-
-  .win-cat {
-    font-size: 80px;
-    line-height: 1;
-    margin-bottom: 10px;
-    animation: float 2s ease-in-out infinite;
+  /* ---- Log ---- */
+  #log-panel {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: none;
+    padding: 6px 12px 10px;
+    background: linear-gradient(0deg, rgba(10,5,16,0.92) 0%, rgba(10,5,16,0) 100%);
+    z-index: 50;
+    max-height: 90px; overflow-y: auto;
+    font-size: 13px;
   }
-
-  .win-title {
-    font-size: 32px;
-    font-weight: 700;
-    color: #ffdd44;
-    text-shadow: 0 0 20px rgba(255, 221, 68, 0.5), 0 2px 0 #b89900;
-  }
-
-  .win-subtitle {
-    color: #d4c0a0;
-    font-size: 16px;
-    margin-top: 6px;
-  }
-
-  #win-screen .stats {
-    color: #c0b0d0;
-    margin-top: 20px;
-    font-size: 16px;
-    line-height: 1.8;
-    text-align: center;
-  }
-
-  #win-screen .restart-prompt {
-    color: #ffb7d5;
-    font-size: 18px;
-    margin-top: 25px;
-    animation: blink 1.2s infinite;
-  }
+  #log-panel.active { display: block; }
+  #log-panel .msg { margin: 1px 0; }
+  #log-panel .msg.combat { color: #ff8899; }
+  #log-panel .msg.pickup { color: #ffdd66; }
+  #log-panel .msg.info { color: #99bbff; }
+  #log-panel .msg.levelup { color: #88eebb; }
+  #log-panel .msg.descend { color: #cc88ff; }
 
   /* ---- Touch Controls ---- */
   #touch-controls {
+    position: fixed; bottom: 95px; left: 0; right: 0;
     display: none;
-    margin-top: 6px;
-    gap: 10px;
-    align-items: flex-start;
     justify-content: center;
-    width: 100%;
-    max-width: 750px;
-    padding: 0 8px;
+    gap: 12px; z-index: 50;
+    padding: 0 12px;
   }
-
   #dpad {
     display: grid;
-    grid-template-columns: 54px 54px 54px;
-    grid-template-rows: 54px 54px 54px;
+    grid-template-columns: 52px 52px 52px;
+    grid-template-rows: 52px 52px 52px;
     gap: 4px;
-    flex-shrink: 0;
   }
-
   .dpad-btn {
-    width: 54px;
-    height: 54px;
-    background: linear-gradient(135deg, #2a1838 0%, #1e1228 100%);
-    border: 1px solid #3d2850;
+    width: 52px; height: 52px;
+    background: rgba(42,24,56,0.7);
+    border: 1px solid rgba(80,50,110,0.6);
     border-radius: 12px;
-    color: #d0b8e0;
-    font-size: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+    color: #d0b8e0; font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    backdrop-filter: blur(4px);
   }
-
-  .dpad-btn:active { background: #3d2850; border-color: #ffb7d5; }
+  .dpad-btn:active { background: rgba(80,50,110,0.8); border-color: #ffb7d5; }
   .dpad-empty { visibility: hidden; }
-
-  #action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    flex-shrink: 0;
-  }
-
+  #action-buttons { display: flex; flex-direction: column; gap: 6px; }
   .action-btn {
-    height: 50px;
-    padding: 0 18px;
-    background: linear-gradient(135deg, #2a1838 0%, #1e1228 100%);
-    border: 1px solid #3d2850;
-    border-radius: 12px;
-    color: #d0b8e0;
-    font-family: 'M PLUS Rounded 1c', 'Courier New', monospace;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
-    -webkit-tap-highlight-color: transparent;
+    height: 48px; padding: 0 16px;
+    background: rgba(42,24,56,0.7);
+    border: 1px solid rgba(80,50,110,0.6);
+    border-radius: 12px; color: #d0b8e0;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    backdrop-filter: blur(4px);
   }
+  .action-btn:active { background: rgba(80,50,110,0.8); border-color: #ffb7d5; }
+  .action-btn.stairs { border-color: rgba(204,136,255,0.5); color: #cc88ff; }
+  .action-btn.potion { border-color: rgba(255,136,170,0.5); color: #ff88aa; }
+  .action-btn.rest   { border-color: rgba(136,204,255,0.5); color: #88ccff; }
 
-  .action-btn:active { background: #3d2850; border-color: #ffb7d5; }
-  .action-btn.stairs { border-color: #cc88ff; color: #cc88ff; }
-  .action-btn.potion { border-color: #ff88aa; color: #ff88aa; }
-  .action-btn.rest   { border-color: #88ccff; color: #88ccff; }
+  /* Desktop hint */
+  #kb-hint {
+    position: fixed; bottom: 8px; left: 0; right: 0;
+    text-align: center; color: #3d2860; font-size: 11px; z-index: 50;
+    display: none;
+  }
+  #kb-hint.active { display: block; }
 
-  /* ---- Mobile responsive ---- */
   @media (max-width: 768px) {
-    .title-cat { font-size: 60px; }
-    .title-name { font-size: 26px; }
-    .title-jp { font-size: 14px; }
-    #title-screen .subtitle { font-size: 13px; }
-    #title-screen .start-prompt { font-size: 16px; }
-    .death-cat, .win-cat { font-size: 60px; }
-    .death-title, .win-title { font-size: 24px; }
-
-    #game-screen { padding-top: 4px; }
-
-    #hud {
-      min-width: auto;
-      width: 100%;
-      gap: 8px;
-      padding: 4px 8px;
-      font-size: 11px;
-      flex-wrap: wrap;
-      border-radius: 0;
-    }
-
-    #map {
-      font-size: 14px;
-      line-height: 1.15;
-      padding: 4px;
-      border-radius: 0;
-    }
-
-    #log {
-      min-width: auto;
-      max-width: 100%;
-      width: 100%;
-      height: 44px;
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 0;
-    }
-
-    #controls { display: none; }
-    #touch-controls { display: flex; }
+    #touch-controls { display: flex !important; }
+    #kb-hint { display: none !important; }
+    .title-cat { font-size: 70px; }
+    .title-name { font-size: 30px; }
+    .hud-stat { font-size: 12px; }
+    #hud { gap: 8px; padding: 6px 8px; }
   }
-
-  @media (max-width: 400px) {
-    #map {
-      font-size: 11px;
-      line-height: 1.1;
-    }
-
-    #hud { font-size: 10px; gap: 6px; }
-    .dpad-btn { width: 46px; height: 46px; font-size: 18px; }
-    #dpad { grid-template-columns: 46px 46px 46px; grid-template-rows: 46px 46px 46px; }
-    .action-btn { height: 42px; font-size: 12px; padding: 0 12px; }
+  @media (min-width: 769px) {
+    #kb-hint.active { display: block; }
   }
 </style>
 </head>
 <body>
 
-<!-- TITLE SCREEN -->
-<div id="title-screen" class="active">
+<!-- TITLE -->
+<div id="title-screen" class="overlay active">
   <div class="title-cat">&#x1F431;</div>
   <div class="title-name">NEKO CAVE</div>
-  <div class="title-jp">&#x732B;&#x306E;&#x6D1E;&#x7A9F;&#x63A2;&#x691C;</div>
-  <div class="subtitle">A Kawaii Dungeon Adventure</div>
-  <div class="subtitle" style="color:#7a6090; margin-top:12px; font-size:13px;">
-    Guide a brave kitty through 10 floors of yokai-infested caves!
-  </div>
-  <div class="start-prompt" id="start-prompt">&#x1F43E; Tap or press ENTER to begin &#x1F43E;</div>
+  <div class="title-sub">&#x732B;&#x306E;&#x6D1E;&#x7A9F;&#x63A2;&#x691C;</div>
+  <div class="title-desc">Guide a brave kitty through 10 floors of yokai-infested caves in 3D!</div>
+  <div class="title-3d">&#x2728; Now in full 3D &#x2728;</div>
+  <div class="prompt" id="start-btn">&#x1F43E; Tap or press ENTER to begin &#x1F43E;</div>
 </div>
 
-<!-- GAME SCREEN -->
-<div id="game-screen">
-  <div id="hud">
-    <div class="stat"><span class="label">&#x2764;&#xFE0F;</span> <span class="hp" id="hud-hp"></span></div>
-    <div class="stat"><span class="label">&#x2694;&#xFE0F;</span> <span class="atk" id="hud-atk"></span></div>
-    <div class="stat"><span class="label">&#x1F6E1;&#xFE0F;</span> <span class="def" id="hud-def"></span></div>
-    <div class="stat"><span class="label">&#x1F4B0;</span> <span class="gold" id="hud-gold"></span></div>
-    <div class="stat"><span class="label">&#x1F3EF;</span> <span class="level" id="hud-floor"></span></div>
-    <div class="stat"><span class="label">&#x2B50;</span> <span class="xp" id="hud-xp"></span></div>
-  </div>
-  <div id="map"></div>
-  <div id="log"></div>
-  <div id="controls">
-    [WASD / Arrows] Move &amp; Attack &nbsp;|&nbsp; [E] Stairs &nbsp;|&nbsp; [R] Nap &nbsp;|&nbsp; [Q] Milk
-  </div>
-  <div id="touch-controls">
-    <div id="dpad">
-      <div class="dpad-btn dpad-empty"></div>
-      <div class="dpad-btn" data-dir="up">&#9650;</div>
-      <div class="dpad-btn dpad-empty"></div>
-      <div class="dpad-btn" data-dir="left">&#9664;</div>
-      <div class="dpad-btn" data-dir="wait">&#x1F4A4;</div>
-      <div class="dpad-btn" data-dir="right">&#9654;</div>
-      <div class="dpad-btn dpad-empty"></div>
-      <div class="dpad-btn" data-dir="down">&#9660;</div>
-      <div class="dpad-btn dpad-empty"></div>
-    </div>
-    <div id="action-buttons">
-      <button class="action-btn stairs" id="btn-stairs">&#x1F3EF; Stairs</button>
-      <button class="action-btn potion" id="btn-potion">&#x1F95B; Milk</button>
-      <button class="action-btn rest" id="btn-rest">&#x1F4A4; Nap</button>
-    </div>
-  </div>
-</div>
-
-<!-- DEATH SCREEN -->
-<div id="death-screen">
+<!-- DEATH -->
+<div id="death-screen" class="overlay">
   <div class="death-cat">&#x1F63F;</div>
   <div class="death-title">Oh no! Neko fainted...</div>
-  <div class="stats" id="death-stats"></div>
-  <div class="restart-prompt" id="death-prompt">&#x1F43E; Tap or press ENTER to try again &#x1F43E;</div>
+  <div class="screen-stats" id="death-stats"></div>
+  <div class="prompt" id="death-btn">&#x1F43E; Tap or press ENTER to try again &#x1F43E;</div>
 </div>
 
-<!-- WIN SCREEN -->
-<div id="win-screen">
+<!-- WIN -->
+<div id="win-screen" class="overlay">
   <div class="win-cat">&#x1F63B;</div>
   <div class="win-title">&#x2728; Neko is Victorious! &#x2728;</div>
-  <div class="win-subtitle">The cave is conquered, nya~!</div>
-  <div class="stats" id="win-stats"></div>
-  <div class="restart-prompt" id="win-prompt">&#x1F43E; Tap or press ENTER to play again &#x1F43E;</div>
+  <div class="win-sub">The cave is conquered, nya~!</div>
+  <div class="screen-stats" id="win-stats"></div>
+  <div class="prompt" id="win-btn">&#x1F43E; Tap or press ENTER to play again &#x1F43E;</div>
 </div>
 
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-stat"><span class="hud-label">&#x2764;&#xFE0F;</span> <span class="hud-hp" id="h-hp"></span></div>
+  <div class="hud-stat"><span class="hud-label">&#x2694;&#xFE0F;</span> <span class="hud-atk" id="h-atk"></span></div>
+  <div class="hud-stat"><span class="hud-label">&#x1F6E1;&#xFE0F;</span> <span class="hud-def" id="h-def"></span></div>
+  <div class="hud-stat"><span class="hud-label">&#x1F4B0;</span> <span class="hud-gold" id="h-gold"></span></div>
+  <div class="hud-stat"><span class="hud-label">&#x1F3EF;</span> <span class="hud-floor" id="h-floor"></span></div>
+  <div class="hud-stat"><span class="hud-label">&#x2B50;</span> <span class="hud-xp" id="h-xp"></span></div>
+</div>
+
+<!-- LOG -->
+<div id="log-panel"></div>
+
+<!-- TOUCH -->
+<div id="touch-controls">
+  <div id="dpad">
+    <div class="dpad-btn dpad-empty"></div>
+    <div class="dpad-btn" data-dir="up">&#9650;</div>
+    <div class="dpad-btn dpad-empty"></div>
+    <div class="dpad-btn" data-dir="left">&#9664;</div>
+    <div class="dpad-btn" data-dir="wait">&#x1F4A4;</div>
+    <div class="dpad-btn" data-dir="right">&#9654;</div>
+    <div class="dpad-btn dpad-empty"></div>
+    <div class="dpad-btn" data-dir="down">&#9660;</div>
+    <div class="dpad-btn dpad-empty"></div>
+  </div>
+  <div id="action-buttons">
+    <button class="action-btn stairs" id="btn-stairs">&#x1F3EF; Stairs</button>
+    <button class="action-btn potion" id="btn-potion">&#x1F95B; Milk</button>
+    <button class="action-btn rest" id="btn-rest">&#x1F4A4; Nap</button>
+  </div>
+</div>
+
+<div id="kb-hint">[WASD] Move & Attack | [E] Stairs | [R] Nap | [Q] Milk</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ============================================================
-//  NEKO CAVE ~ A Kawaii Dungeon Crawler
+//  NEKO CAVE 3D ~ A Kawaii Dungeon Crawler
 // ============================================================
 
-const COLS = 35;
-const ROWS = 20;
-const MAX_FLOOR = 10;
-const FOV_RADIUS = 6;
+// ---- Constants ----
+const COLS = 30, ROWS = 22, MAX_FLOOR = 10, FOV_RADIUS = 6;
+const TILE_SIZE = 2;
+const T = { WALL: '#', FLOOR: '.', STAIRS_DOWN: '>', STAIRS_UP: '<', WATER: '~' };
 
-// Emoji tiles
-const TILE = {
-  WALL:    '&#x1FAA8;',   // rock
-  FLOOR:   '&#x3000;',    // ideographic space (wide)
-  STAIRS:  '&#x1F3EF;',   // japanese castle
-  WATER:   '&#x1F4A7;',   // water droplet
-  PLAYER:  '&#x1F431;',   // cat face
-  DARK:    '&#x2B1B;',    // black square
-  EXPLORED_WALL:  '&#x25AA;&#xFE0F;', // small dark square
-  EXPLORED_FLOOR: '&#x2005;&#x2005;', // thin spaces (dim empty)
+// ---- Three.js Setup ----
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x08040c);
+scene.fog = new THREE.FogExp2(0x08040c, 0.06);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.prepend(renderer.domElement);
+
+// Ambient light
+const ambient = new THREE.AmbientLight(0x1a0e2e, 0.3);
+scene.add(ambient);
+
+// Player point light (torch / FOV)
+const playerLight = new THREE.PointLight(0xffeedd, 1.8, 18, 1.5);
+playerLight.castShadow = true;
+playerLight.shadow.mapSize.set(512, 512);
+scene.add(playerLight);
+
+// Secondary fill light
+const fillLight = new THREE.PointLight(0xbb88ff, 0.4, 25, 2);
+scene.add(fillLight);
+
+// ---- Materials ----
+const MAT = {
+  wall: new THREE.MeshStandardMaterial({ color: 0x3d2850, roughness: 0.9 }),
+  wallTop: new THREE.MeshStandardMaterial({ color: 0x2a1a3a, roughness: 0.95 }),
+  floor: new THREE.MeshStandardMaterial({ color: 0x1a1225, roughness: 0.8 }),
+  water: new THREE.MeshStandardMaterial({ color: 0x1a3a5e, roughness: 0.3, transparent: true, opacity: 0.7 }),
+  stairs: new THREE.MeshStandardMaterial({ color: 0xcc88ff, roughness: 0.5, emissive: 0x6622aa, emissiveIntensity: 0.4 }),
+  gold: new THREE.MeshStandardMaterial({ color: 0xffdd44, roughness: 0.3, metalness: 0.8, emissive: 0xaa8800, emissiveIntensity: 0.3 }),
+  potion: new THREE.MeshStandardMaterial({ color: 0xffaacc, roughness: 0.2, emissive: 0xff4488, emissiveIntensity: 0.3 }),
+  weapon: new THREE.MeshStandardMaterial({ color: 0xccccdd, roughness: 0.2, metalness: 0.9 }),
+  armor: new THREE.MeshStandardMaterial({ color: 0x6699cc, roughness: 0.4, metalness: 0.6 }),
+  powerup: new THREE.MeshStandardMaterial({ color: 0xffee88, roughness: 0.1, emissive: 0xffaa00, emissiveIntensity: 0.6 }),
 };
 
-// Internal tile types (single char for map array)
-const T = {
-  WALL: '#', FLOOR: '.', STAIRS_DOWN: '>', STAIRS_UP: '<', WATER: '~',
+// ---- Cat Builder ----
+function createCat() {
+  const cat = new THREE.Group();
+
+  // Body
+  const bodyGeo = new THREE.CapsuleGeometry(0.35, 0.5, 8, 12);
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf5c490, roughness: 0.7 });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.rotation.x = Math.PI / 2;
+  body.position.y = 0.45;
+  body.castShadow = true;
+  cat.add(body);
+
+  // Head
+  const headGeo = new THREE.SphereGeometry(0.32, 12, 10);
+  const head = new THREE.Mesh(headGeo, bodyMat);
+  head.position.set(0, 0.65, 0.4);
+  head.castShadow = true;
+  cat.add(head);
+
+  // Ears
+  const earGeo = new THREE.ConeGeometry(0.12, 0.22, 4);
+  const earMat = new THREE.MeshStandardMaterial({ color: 0xffaacc, roughness: 0.6 });
+  const earL = new THREE.Mesh(earGeo, earMat);
+  earL.position.set(-0.18, 0.92, 0.38);
+  earL.rotation.z = -0.2;
+  cat.add(earL);
+  const earR = new THREE.Mesh(earGeo, earMat);
+  earR.position.set(0.18, 0.92, 0.38);
+  earR.rotation.z = 0.2;
+  cat.add(earR);
+
+  // Eyes
+  const eyeGeo = new THREE.SphereGeometry(0.06, 8, 8);
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.1, emissive: 0x111111 });
+  const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeL.position.set(-0.12, 0.7, 0.68);
+  cat.add(eyeL);
+  const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeR.position.set(0.12, 0.7, 0.68);
+  cat.add(eyeR);
+
+  // Eye shine
+  const shineGeo = new THREE.SphereGeometry(0.025, 6, 6);
+  const shineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const shineL = new THREE.Mesh(shineGeo, shineMat);
+  shineL.position.set(-0.1, 0.72, 0.73);
+  cat.add(shineL);
+  const shineR = new THREE.Mesh(shineGeo, shineMat);
+  shineR.position.set(0.14, 0.72, 0.73);
+  cat.add(shineR);
+
+  // Nose
+  const noseGeo = new THREE.SphereGeometry(0.04, 6, 6);
+  const noseMat = new THREE.MeshStandardMaterial({ color: 0xff8899, roughness: 0.3 });
+  const nose = new THREE.Mesh(noseGeo, noseMat);
+  nose.position.set(0, 0.62, 0.72);
+  cat.add(nose);
+
+  // Tail
+  const tailCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0.4, -0.4),
+    new THREE.Vector3(0.1, 0.6, -0.7),
+    new THREE.Vector3(0.2, 0.9, -0.65),
+    new THREE.Vector3(0.15, 1.05, -0.5),
+  ]);
+  const tailGeo = new THREE.TubeGeometry(tailCurve, 12, 0.06, 6, false);
+  const tail = new THREE.Mesh(tailGeo, bodyMat);
+  tail.castShadow = true;
+  cat.add(tail);
+  cat.userData.tail = tail;
+
+  // Legs
+  const legGeo = new THREE.CylinderGeometry(0.06, 0.07, 0.25, 6);
+  const positions = [[-0.15, 0.12, 0.2],[0.15, 0.12, 0.2],[-0.15, 0.12, -0.2],[0.15, 0.12, -0.2]];
+  positions.forEach(p => {
+    const leg = new THREE.Mesh(legGeo, bodyMat);
+    leg.position.set(...p);
+    leg.castShadow = true;
+    cat.add(leg);
+  });
+
+  cat.scale.set(1.1, 1.1, 1.1);
+  return cat;
+}
+
+// ---- Monster Builder ----
+const MONSTER_COLORS = {
+  'Nezumi':      0x887766, 'Tanuki':      0x886644,
+  'Komori':      0x554466, 'Kappa':       0x44aa66,
+  'Oni':         0xcc4444, 'Dokuro':      0xccccbb,
+  'Tengu':       0xaa3333, 'Dark Kodama': 0x338844,
+  'Y\u016Brei':  0x8888bb, 'Jorougumo':   0x664488,
+  'Ry\u016B':    0xff6622, 'Y\u014Dkai King': 0x880088,
 };
 
-// Monster definitions - Japanese yokai theme
+function createMonsterMesh(name) {
+  const g = new THREE.Group();
+  const color = MONSTER_COLORS[name] || 0xff0000;
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+
+  // Body sphere
+  const size = name === 'Ry\u016B' ? 0.5 : name === 'Y\u014Dkai King' ? 0.55 : 0.35;
+  const body = new THREE.Mesh(new THREE.SphereGeometry(size, 10, 8), mat);
+  body.position.y = size + 0.1;
+  body.castShadow = true;
+  g.add(body);
+
+  // Eyes (glowing)
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2244 });
+  const eyeGeo = new THREE.SphereGeometry(0.06, 6, 6);
+  const eL = new THREE.Mesh(eyeGeo, eyeMat);
+  eL.position.set(-0.12, size + 0.15, size * 0.8);
+  g.add(eL);
+  const eR = new THREE.Mesh(eyeGeo, eyeMat);
+  eR.position.set(0.12, size + 0.15, size * 0.8);
+  g.add(eR);
+
+  // Horns for Oni / Yokai King
+  if (name === 'Oni' || name === 'Y\u014Dkai King') {
+    const hornMat = new THREE.MeshStandardMaterial({ color: 0xeedd88 });
+    const hornGeo = new THREE.ConeGeometry(0.06, 0.3, 5);
+    const hL = new THREE.Mesh(hornGeo, hornMat);
+    hL.position.set(-0.15, size * 2 + 0.2, 0);
+    g.add(hL);
+    const hR = new THREE.Mesh(hornGeo, hornMat);
+    hR.position.set(0.15, size * 2 + 0.2, 0);
+    g.add(hR);
+  }
+
+  // Ghost trail for Yurei
+  if (name === 'Y\u016Brei') {
+    const trailMat = new THREE.MeshStandardMaterial({ color: 0x8888bb, transparent: true, opacity: 0.4 });
+    const trail = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.6, 8), trailMat);
+    trail.position.y = 0.15;
+    trail.rotation.x = Math.PI;
+    g.add(trail);
+  }
+
+  return g;
+}
+
+// ---- Item Builder ----
+function createItemMesh(type) {
+  const g = new THREE.Group();
+  let mesh;
+  switch (type) {
+    case 'gold':
+      mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.08, 12), MAT.gold);
+      mesh.position.y = 0.3;
+      break;
+    case 'potion':
+      mesh = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), MAT.potion);
+      mesh.position.y = 0.35;
+      break;
+    case 'weapon':
+      mesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.08), MAT.weapon);
+      mesh.position.y = 0.45;
+      mesh.rotation.z = 0.3;
+      break;
+    case 'armor':
+      mesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.1), MAT.armor);
+      mesh.position.y = 0.35;
+      break;
+    case 'powerup': {
+      mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), MAT.powerup);
+      mesh.position.y = 0.5;
+      // Add glow
+      const glowMat = new THREE.MeshBasicMaterial({ color: 0xffdd44, transparent: true, opacity: 0.2 });
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), glowMat);
+      glow.position.y = 0.5;
+      g.add(glow);
+      break;
+    }
+    default:
+      mesh = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), MAT.gold);
+      mesh.position.y = 0.3;
+  }
+  mesh.castShadow = true;
+  g.add(mesh);
+  g.userData.bobOffset = Math.random() * Math.PI * 2;
+  return g;
+}
+
+// ---- Monster Data ----
 const MONSTERS = {
-  nezumi:    { emoji: '&#x1F400;', name: 'Nezumi',         hp: 6,  atk: 2, def: 0, xp: 3,  floors: [1,3]  },
-  tanuki:    { emoji: '&#x1F99D;', name: 'Tanuki',         hp: 8,  atk: 3, def: 1, xp: 5,  floors: [1,4]  },
-  komori:    { emoji: '&#x1F987;', name: 'Komori',         hp: 5,  atk: 2, def: 0, xp: 3,  floors: [1,5]  },
-  kappa:     { emoji: '&#x1F438;', name: 'Kappa',          hp: 12, atk: 4, def: 2, xp: 8,  floors: [2,5]  },
-  oni:       { emoji: '&#x1F479;', name: 'Oni',            hp: 18, atk: 6, def: 3, xp: 14, floors: [3,7]  },
-  dokuro:    { emoji: '&#x1F480;', name: 'Dokuro',         hp: 15, atk: 5, def: 4, xp: 12, floors: [3,6]  },
-  tengu:     { emoji: '&#x1F47A;', name: 'Tengu',          hp: 30, atk: 8, def: 5, xp: 22, floors: [5,8]  },
-  kodama:    { emoji: '&#x1F343;', name: 'Dark Kodama',    hp: 35, atk: 7, def: 8, xp: 25, floors: [5,9]  },
-  yurei:     { emoji: '&#x1F47B;', name: 'Y\u016Brei',     hp: 22, atk: 10,def: 3, xp: 20, floors: [6,9]  },
-  jorogumo:  { emoji: '&#x1F577;&#xFE0F;', name: 'Jorougumo',hp: 28, atk: 9, def: 5, xp: 24, floors: [7,10] },
-  ryuu:      { emoji: '&#x1F432;', name: 'Ry\u016B',       hp: 50, atk: 14,def: 8, xp: 50, floors: [9,10] },
-  yokai_king:{ emoji: '&#x1F47F;', name: 'Y\u014Dkai King', hp: 60, atk: 12,def: 10,xp: 60, floors: [10,10]},
+  nezumi:    { name: 'Nezumi',        hp: 6,  atk: 2, def: 0, xp: 3,  floors: [1,3]  },
+  tanuki:    { name: 'Tanuki',        hp: 8,  atk: 3, def: 1, xp: 5,  floors: [1,4]  },
+  komori:    { name: 'Komori',        hp: 5,  atk: 2, def: 0, xp: 3,  floors: [1,5]  },
+  kappa:     { name: 'Kappa',         hp: 12, atk: 4, def: 2, xp: 8,  floors: [2,5]  },
+  oni:       { name: 'Oni',           hp: 18, atk: 6, def: 3, xp: 14, floors: [3,7]  },
+  dokuro:    { name: 'Dokuro',        hp: 15, atk: 5, def: 4, xp: 12, floors: [3,6]  },
+  tengu:     { name: 'Tengu',         hp: 30, atk: 8, def: 5, xp: 22, floors: [5,8]  },
+  kodama:    { name: 'Dark Kodama',   hp: 35, atk: 7, def: 8, xp: 25, floors: [5,9]  },
+  yurei:     { name: 'Y\u016Brei',    hp: 22, atk:10, def: 3, xp: 20, floors: [6,9]  },
+  jorogumo:  { name: 'Jorougumo',     hp: 28, atk: 9, def: 5, xp: 24, floors: [7,10] },
+  ryuu:      { name: 'Ry\u016B',      hp: 50, atk:14, def: 8, xp: 50, floors: [9,10] },
+  yokai_king:{ name: 'Y\u014Dkai King',hp:60, atk:12, def:10, xp: 60, floors: [10,10]},
 };
 
-// Item emojis
-const ITEM_EMOJI = {
-  potion:  '&#x1F95B;',  // milk
-  gold:    '&#x1F4B0;',  // money bag
-  weapon:  '&#x2694;&#xFE0F;',  // swords
-  armor:   '&#x1F6E1;&#xFE0F;', // shield
-  powerup: '&#x2728;',   // sparkles
-};
-
-const WEAPON_NAMES = [
-  'Wooden Chopsticks', 'Bamboo Claw', 'Koi Blade', 'Neko Tanto',
-  'Fox Fang Katana', 'Thunder Paw', 'Moon Claw', 'Sakura Blade',
-  'Dragon Whisker', 'Legendary Maneki Neko'
-];
-
-const ARMOR_NAMES = [
-  'Paper Collar', 'Fish Scale Vest', 'Silk Ribbon', 'Bamboo Shell',
-  'Jade Bell Collar', 'Kitsune Fur Cloak', 'Samurai Kitty Armor', 'Moonstone Pendant',
-  'Golden Daruma Shield', 'Armor of the Nine Lives'
-];
+const WEAPON_NAMES = ['Wooden Chopsticks','Bamboo Claw','Koi Blade','Neko Tanto','Fox Fang Katana','Thunder Paw','Moon Claw','Sakura Blade','Dragon Whisker','Legendary Maneki Neko'];
+const ARMOR_NAMES = ['Paper Collar','Fish Scale Vest','Silk Ribbon','Bamboo Shell','Jade Bell Collar','Kitsune Fur Cloak','Samurai Kitty Armor','Moonstone Pendant','Golden Daruma Shield','Armor of the Nine Lives'];
 
 // ---- Game State ----
-let state = 'title';
-let player, dungeon, entities, items, visible, explored, log, turnCount;
+let gameState = 'title';
+let player, dungeon, entities, items, visible, explored, logArr, turnCount;
+let catMesh, dungeonGroup, entityMeshes = [], itemMeshes = [];
+let animating = false;
+let cameraAngle = 0;
 
 function initPlayer() {
   return {
     x: 0, y: 0,
-    hp: 30, maxHp: 30,
-    atk: 4, def: 2,
-    gold: 0, xp: 0, level: 1,
-    xpNext: 15,
-    floor: 1,
-    potions: 1,
-    weapon: 'Tiny Paws',
-    armor: 'Soft Fur',
+    hp: 30, maxHp: 30, atk: 4, def: 2,
+    gold: 0, xp: 0, level: 1, xpNext: 15,
+    floor: 1, potions: 1,
+    weapon: 'Tiny Paws', armor: 'Soft Fur',
     monstersSlain: 0,
+    facing: 0, // radians
   };
 }
 
-// ---- Dungeon Generation ----
+// ---- Dungeon Gen ----
 class Room {
   constructor(x, y, w, h) {
-    this.x = x; this.y = y; this.w = w; this.h = h;
-    this.cx = Math.floor(x + w / 2);
-    this.cy = Math.floor(y + h / 2);
+    this.x=x; this.y=y; this.w=w; this.h=h;
+    this.cx=Math.floor(x+w/2); this.cy=Math.floor(y+h/2);
   }
 }
 
 function generateDungeon(floor) {
-  const map = Array.from({ length: ROWS }, () => Array(COLS).fill(T.WALL));
+  const map = Array.from({length:ROWS}, ()=> Array(COLS).fill(T.WALL));
   const rooms = [];
-
-  const numRooms = 5 + Math.floor(Math.random() * 4);
-  for (let i = 0; i < numRooms * 3 && rooms.length < numRooms; i++) {
-    const w = 3 + Math.floor(Math.random() * 5);
-    const h = 3 + Math.floor(Math.random() * 4);
-    const x = 1 + Math.floor(Math.random() * (COLS - w - 2));
-    const y = 1 + Math.floor(Math.random() * (ROWS - h - 2));
-
-    const room = new Room(x, y, w, h);
-    let overlaps = false;
+  const numRooms = 5 + Math.floor(Math.random()*4);
+  for (let i=0; i<numRooms*3 && rooms.length<numRooms; i++) {
+    const w = 3+Math.floor(Math.random()*5);
+    const h = 3+Math.floor(Math.random()*4);
+    const x = 1+Math.floor(Math.random()*(COLS-w-2));
+    const y = 1+Math.floor(Math.random()*(ROWS-h-2));
+    const room = new Room(x,y,w,h);
+    let ok = true;
     for (const r of rooms) {
-      if (room.x <= r.x + r.w + 1 && room.x + room.w + 1 >= r.x &&
-          room.y <= r.y + r.h + 1 && room.y + room.h + 1 >= r.y) {
-        overlaps = true;
-        break;
-      }
+      if (room.x<=r.x+r.w+1&&room.x+room.w+1>=r.x&&room.y<=r.y+r.h+1&&room.y+room.h+1>=r.y){ok=false;break;}
     }
-    if (!overlaps) {
-      for (let ry = y; ry < y + h; ry++) {
-        for (let rx = x; rx < x + w; rx++) {
-          map[ry][rx] = T.FLOOR;
-        }
-      }
+    if (ok) {
+      for (let ry=y;ry<y+h;ry++) for (let rx=x;rx<x+w;rx++) map[ry][rx]=T.FLOOR;
       rooms.push(room);
     }
   }
-
-  // Connect rooms
-  for (let i = 1; i < rooms.length; i++) {
-    const a = rooms[i - 1], b = rooms[i];
-    let cx = a.cx, cy = a.cy;
-    while (cx !== b.cx) {
-      if (cy >= 0 && cy < ROWS && cx >= 0 && cx < COLS) map[cy][cx] = T.FLOOR;
-      cx += cx < b.cx ? 1 : -1;
-    }
-    while (cy !== b.cy) {
-      if (cy >= 0 && cy < ROWS && cx >= 0 && cx < COLS) map[cy][cx] = T.FLOOR;
-      cy += cy < b.cy ? 1 : -1;
-    }
+  for (let i=1;i<rooms.length;i++) {
+    const a=rooms[i-1],b=rooms[i];
+    let cx=a.cx,cy=a.cy;
+    while(cx!==b.cx){if(cy>=0&&cy<ROWS&&cx>=0&&cx<COLS)map[cy][cx]=T.FLOOR;cx+=cx<b.cx?1:-1;}
+    while(cy!==b.cy){if(cy>=0&&cy<ROWS&&cx>=0&&cx<COLS)map[cy][cx]=T.FLOOR;cy+=cy<b.cy?1:-1;}
   }
-
-  // Water pools on deeper floors
-  if (floor >= 3 && Math.random() < 0.5) {
-    const wr = rooms[Math.floor(Math.random() * rooms.length)];
-    const poolX = wr.x + 1 + Math.floor(Math.random() * Math.max(1, wr.w - 2));
-    const poolY = wr.y + 1 + Math.floor(Math.random() * Math.max(1, wr.h - 2));
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        const px = poolX + dx, py = poolY + dy;
-        if (py > 0 && py < ROWS - 1 && px > 0 && px < COLS - 1 && map[py][px] === T.FLOOR) {
-          if (Math.random() < 0.6) map[py][px] = T.WATER;
-        }
-      }
+  if (floor>=3&&Math.random()<0.5) {
+    const wr=rooms[Math.floor(Math.random()*rooms.length)];
+    const px=wr.x+1+Math.floor(Math.random()*Math.max(1,wr.w-2));
+    const py=wr.y+1+Math.floor(Math.random()*Math.max(1,wr.h-2));
+    for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+      const wx=px+dx,wy=py+dy;
+      if(wy>0&&wy<ROWS-1&&wx>0&&wx<COLS-1&&map[wy][wx]===T.FLOOR&&Math.random()<0.6)map[wy][wx]=T.WATER;
     }
   }
-
-  // Place stairs down in last room
-  const lastRoom = rooms[rooms.length - 1];
-  if (floor < MAX_FLOOR) {
-    map[lastRoom.cy][lastRoom.cx] = T.STAIRS_DOWN;
-  }
-
-  if (floor > 1) {
-    map[rooms[0].cy][rooms[0].cx] = T.STAIRS_UP;
-  }
-
-  return { map, rooms };
-}
-
-// ---- Entity Placement ----
-function spawnMonsters(rooms, floor) {
-  const ents = [];
-  const eligible = Object.values(MONSTERS).filter(
-    m => floor >= m.floors[0] && floor <= m.floors[1]
-  );
-  if (eligible.length === 0) return ents;
-
-  const count = 3 + Math.floor(Math.random() * 3) + Math.floor(floor * 0.5);
-  for (let i = 0; i < count; i++) {
-    const room = rooms[1 + Math.floor(Math.random() * (rooms.length - 1))];
-    const template = eligible[Math.floor(Math.random() * eligible.length)];
-    const x = room.x + Math.floor(Math.random() * room.w);
-    const y = room.y + Math.floor(Math.random() * room.h);
-    const scale = 1 + (floor - template.floors[0]) * 0.1;
-    ents.push({
-      x, y,
-      emoji: template.emoji,
-      name: template.name,
-      hp: Math.floor(template.hp * scale),
-      maxHp: Math.floor(template.hp * scale),
-      atk: Math.floor(template.atk * scale),
-      def: Math.floor(template.def * scale),
-      xp: template.xp,
-      awake: false,
-    });
-  }
-  return ents;
-}
-
-function spawnItems(rooms, floor, map) {
-  const itms = [];
-  const count = 3 + Math.floor(Math.random() * 4);
-  for (let i = 0; i < count; i++) {
-    const room = rooms[Math.floor(Math.random() * rooms.length)];
-    const x = room.x + Math.floor(Math.random() * room.w);
-    const y = room.y + Math.floor(Math.random() * room.h);
-    if (map[y][x] === T.WALL || map[y][x] === T.WATER) continue;
-
-    const roll = Math.random();
-    let item;
-    if (roll < 0.35) {
-      const amt = 5 + Math.floor(Math.random() * 20 * (1 + floor * 0.2));
-      item = { x, y, emoji: ITEM_EMOJI.gold, name: `${amt} Gold`, type: 'gold', amount: amt };
-    } else if (roll < 0.6) {
-      const heal = 15 + floor * 2;
-      item = { x, y, emoji: ITEM_EMOJI.potion, name: `Warm Milk (+${heal})`, type: 'potion', heal };
-    } else if (roll < 0.8) {
-      const tier = Math.min(Math.floor((floor - 1 + Math.random() * 2)), WEAPON_NAMES.length - 1);
-      const bonus = 1 + tier + Math.floor(Math.random() * 2);
-      item = { x, y, emoji: ITEM_EMOJI.weapon, name: WEAPON_NAMES[tier], type: 'weapon', atk: bonus };
-    } else if (roll < 0.95) {
-      const tier = Math.min(Math.floor((floor - 1 + Math.random() * 2)), ARMOR_NAMES.length - 1);
-      const bonus = 1 + tier + Math.floor(Math.random() * 2);
-      item = { x, y, emoji: ITEM_EMOJI.armor, name: ARMOR_NAMES[tier], type: 'armor', def: bonus };
-    } else {
-      item = { x, y, emoji: ITEM_EMOJI.powerup, name: 'Spirit Orb', type: 'powerup' };
-    }
-    itms.push(item);
-  }
-  return itms;
+  const last=rooms[rooms.length-1];
+  if(floor<MAX_FLOOR) map[last.cy][last.cx]=T.STAIRS_DOWN;
+  if(floor>1) map[rooms[0].cy][rooms[0].cx]=T.STAIRS_UP;
+  return {map,rooms};
 }
 
 // ---- FOV ----
 function computeFOV(px, py, map) {
-  const vis = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+  const vis = Array.from({length:ROWS},()=>Array(COLS).fill(false));
   vis[py][px] = true;
-  for (let angle = 0; angle < 360; angle += 1.5) {
-    const rad = angle * Math.PI / 180;
-    const dx = Math.cos(rad), dy = Math.sin(rad);
-    let x = px + 0.5, y = py + 0.5;
-    for (let d = 0; d < FOV_RADIUS; d++) {
-      x += dx; y += dy;
-      const ix = Math.floor(x), iy = Math.floor(y);
-      if (ix < 0 || ix >= COLS || iy < 0 || iy >= ROWS) break;
-      vis[iy][ix] = true;
-      if (map[iy][ix] === T.WALL) break;
+  for (let a=0;a<360;a+=1.5) {
+    const r=a*Math.PI/180, dx=Math.cos(r), dy=Math.sin(r);
+    let x=px+0.5,y=py+0.5;
+    for (let d=0;d<FOV_RADIUS;d++) {
+      x+=dx;y+=dy;
+      const ix=Math.floor(x),iy=Math.floor(y);
+      if(ix<0||ix>=COLS||iy<0||iy>=ROWS)break;
+      vis[iy][ix]=true;
+      if(map[iy][ix]===T.WALL)break;
     }
   }
   return vis;
 }
 
-// ---- Rendering ----
-function tileToEmoji(tile, isVisible) {
-  if (!isVisible) {
-    return { html: TILE.DARK, cls: 'dim' };
-  }
-  switch (tile) {
-    case T.WALL:        return { html: TILE.WALL, cls: '' };
-    case T.FLOOR:       return { html: TILE.FLOOR, cls: '' };
-    case T.STAIRS_DOWN: return { html: TILE.STAIRS, cls: '' };
-    case T.STAIRS_UP:   return { html: TILE.STAIRS, cls: '' };
-    case T.WATER:       return { html: TILE.WATER, cls: '' };
-    default:            return { html: TILE.FLOOR, cls: '' };
-  }
-}
+// ---- Build 3D Dungeon ----
+function buildDungeon3D() {
+  if (dungeonGroup) scene.remove(dungeonGroup);
+  dungeonGroup = new THREE.Group();
 
-function render() {
-  visible = computeFOV(player.x, player.y, dungeon.map);
+  const wallGeo = new THREE.BoxGeometry(TILE_SIZE, TILE_SIZE * 1.2, TILE_SIZE);
+  const floorGeo = new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE);
 
-  for (let y = 0; y < ROWS; y++) {
-    for (let x = 0; x < COLS; x++) {
-      if (visible[y][x]) explored[y][x] = true;
-    }
-  }
+  for (let y=0; y<ROWS; y++) {
+    for (let x=0; x<COLS; x++) {
+      const wx = x * TILE_SIZE, wz = y * TILE_SIZE;
+      const tile = dungeon.map[y][x];
 
-  let html = '';
-  for (let y = 0; y < ROWS; y++) {
-    for (let x = 0; x < COLS; x++) {
-      let emoji, cls = '';
-
-      if (visible[y][x]) {
-        if (x === player.x && y === player.y) {
-          emoji = TILE.PLAYER;
-        } else {
-          const ent = entities.find(e => e.x === x && e.y === y && e.hp > 0);
-          if (ent) {
-            emoji = ent.emoji;
-          } else {
-            const itm = items.find(i => i.x === x && i.y === y);
-            if (itm) {
-              emoji = itm.emoji;
-            } else {
-              const t = tileToEmoji(dungeon.map[y][x], true);
-              emoji = t.html;
-              cls = t.cls;
-            }
-          }
-        }
-      } else if (explored[y][x]) {
-        const tile = dungeon.map[y][x];
-        if (tile === T.WALL) {
-          emoji = TILE.DARK;
-        } else {
-          emoji = TILE.DARK;
-        }
-        cls = 'dim';
+      if (tile === T.WALL) {
+        const wall = new THREE.Mesh(wallGeo, MAT.wall);
+        wall.position.set(wx, TILE_SIZE * 0.6, wz);
+        wall.receiveShadow = true;
+        wall.castShadow = true;
+        dungeonGroup.add(wall);
       } else {
-        emoji = TILE.DARK;
-        cls = '';
+        // Floor
+        const flr = new THREE.Mesh(floorGeo, tile === T.WATER ? MAT.water : MAT.floor);
+        flr.rotation.x = -Math.PI / 2;
+        flr.position.set(wx, 0.01, wz);
+        flr.receiveShadow = true;
+        dungeonGroup.add(flr);
+
+        // Stairs
+        if (tile === T.STAIRS_DOWN || tile === T.STAIRS_UP) {
+          const stairGeo = new THREE.CylinderGeometry(0.3, 0.5, 0.15, 6);
+          const stair = new THREE.Mesh(stairGeo, MAT.stairs);
+          stair.position.set(wx, 0.1, wz);
+          stair.receiveShadow = true;
+          dungeonGroup.add(stair);
+          // Glow ring
+          const ringGeo = new THREE.TorusGeometry(0.6, 0.05, 8, 20);
+          const ringMat = new THREE.MeshBasicMaterial({ color: 0xcc88ff, transparent: true, opacity: 0.4 });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.rotation.x = -Math.PI / 2;
+          ring.position.set(wx, 0.05, wz);
+          dungeonGroup.add(ring);
+        }
       }
-
-      html += cls ? `<span class="${cls}">${emoji}</span>` : `<span>${emoji}</span>`;
     }
-    html += '\n';
   }
-
-  document.getElementById('map').innerHTML = html;
-
-  // HUD
-  document.getElementById('hud-hp').textContent = `${player.hp}/${player.maxHp}`;
-  document.getElementById('hud-atk').textContent = player.atk;
-  document.getElementById('hud-def').textContent = player.def;
-  document.getElementById('hud-gold').textContent = player.gold;
-  document.getElementById('hud-floor').textContent = `${player.floor}/${MAX_FLOOR}`;
-  document.getElementById('hud-xp').textContent = `${player.xp}/${player.xpNext} (Lv${player.level})`;
+  scene.add(dungeonGroup);
 }
 
-function addLog(text, cls = 'info') {
-  const el = document.getElementById('log');
+// ---- Spawn 3D Entities ----
+function spawnMonsters3D(rooms, floor) {
+  entityMeshes.forEach(m => scene.remove(m));
+  entityMeshes = [];
+  entities = [];
+
+  const eligible = Object.values(MONSTERS).filter(m => floor >= m.floors[0] && floor <= m.floors[1]);
+  if (!eligible.length) return;
+
+  const count = 3 + Math.floor(Math.random()*3) + Math.floor(floor*0.5);
+  for (let i=0; i<count; i++) {
+    const room = rooms[1+Math.floor(Math.random()*(rooms.length-1))];
+    const tmpl = eligible[Math.floor(Math.random()*eligible.length)];
+    const x = room.x + Math.floor(Math.random()*room.w);
+    const y = room.y + Math.floor(Math.random()*room.h);
+    if (dungeon.map[y][x] === T.WALL || dungeon.map[y][x] === T.WATER) continue;
+    const scale = 1 + (floor - tmpl.floors[0]) * 0.1;
+    const ent = {
+      x, y, name: tmpl.name,
+      hp: Math.floor(tmpl.hp*scale), maxHp: Math.floor(tmpl.hp*scale),
+      atk: Math.floor(tmpl.atk*scale), def: Math.floor(tmpl.def*scale),
+      xp: tmpl.xp, awake: false,
+    };
+    entities.push(ent);
+    const mesh = createMonsterMesh(tmpl.name);
+    mesh.position.set(x*TILE_SIZE, 0, y*TILE_SIZE);
+    mesh.visible = false;
+    scene.add(mesh);
+    entityMeshes.push(mesh);
+  }
+}
+
+function spawnItems3D(rooms, floor, map) {
+  itemMeshes.forEach(m => scene.remove(m));
+  itemMeshes = [];
+  items = [];
+
+  const count = 3 + Math.floor(Math.random()*4);
+  for (let i=0; i<count; i++) {
+    const room = rooms[Math.floor(Math.random()*rooms.length)];
+    const x = room.x + Math.floor(Math.random()*room.w);
+    const y = room.y + Math.floor(Math.random()*room.h);
+    if (map[y][x]===T.WALL||map[y][x]===T.WATER) continue;
+
+    const roll = Math.random();
+    let item;
+    if (roll<0.35) {
+      const amt = 5+Math.floor(Math.random()*20*(1+floor*0.2));
+      item = {x,y,name:`${amt} Gold`,type:'gold',amount:amt};
+    } else if (roll<0.6) {
+      const heal = 15+floor*2;
+      item = {x,y,name:`Warm Milk (+${heal})`,type:'potion',heal};
+    } else if (roll<0.8) {
+      const tier = Math.min(Math.floor(floor-1+Math.random()*2), WEAPON_NAMES.length-1);
+      item = {x,y,name:WEAPON_NAMES[tier],type:'weapon',atk:1+tier+Math.floor(Math.random()*2)};
+    } else if (roll<0.95) {
+      const tier = Math.min(Math.floor(floor-1+Math.random()*2), ARMOR_NAMES.length-1);
+      item = {x,y,name:ARMOR_NAMES[tier],type:'armor',def:1+tier+Math.floor(Math.random()*2)};
+    } else {
+      item = {x,y,name:'Spirit Orb',type:'powerup'};
+    }
+    items.push(item);
+    const mesh = createItemMesh(item.type);
+    mesh.position.set(x*TILE_SIZE, 0, y*TILE_SIZE);
+    mesh.visible = false;
+    scene.add(mesh);
+    itemMeshes.push(mesh);
+  }
+}
+
+// ---- Visibility Update ----
+function updateVisibility() {
+  visible = computeFOV(player.x, player.y, dungeon.map);
+  for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++) if(visible[y][x]) explored[y][x]=true;
+
+  // Monster visibility
+  for (let i=0; i<entities.length; i++) {
+    const e = entities[i];
+    entityMeshes[i].visible = e.hp > 0 && visible[e.y] && visible[e.y][e.x];
+  }
+  // Item visibility
+  for (let i=0; i<items.length; i++) {
+    const it = items[i];
+    itemMeshes[i].visible = visible[it.y] && visible[it.y][it.x];
+  }
+}
+
+// ---- Camera ----
+function updateCamera(instant) {
+  const tx = player.x * TILE_SIZE;
+  const tz = player.y * TILE_SIZE;
+  const camDist = 8;
+  const camHeight = 9;
+  const targetX = tx - Math.sin(cameraAngle) * camDist;
+  const targetZ = tz - Math.cos(cameraAngle) * camDist;
+  const targetY = camHeight;
+
+  if (instant) {
+    camera.position.set(targetX, targetY, targetZ);
+  } else {
+    camera.position.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.08);
+  }
+  camera.lookAt(tx, 0.5, tz);
+
+  // Update lights
+  playerLight.position.set(tx, 3, tz);
+  fillLight.position.set(tx, 5, tz);
+}
+
+// ---- HUD ----
+function updateHUD() {
+  document.getElementById('h-hp').textContent = `${player.hp}/${player.maxHp}`;
+  document.getElementById('h-atk').textContent = player.atk;
+  document.getElementById('h-def').textContent = player.def;
+  document.getElementById('h-gold').textContent = player.gold;
+  document.getElementById('h-floor').textContent = `${player.floor}/${MAX_FLOOR}`;
+  document.getElementById('h-xp').textContent = `${player.xp}/${player.xpNext} (Lv${player.level})`;
+}
+
+function addLog(text, cls='info') {
+  const el = document.getElementById('log-panel');
   const div = document.createElement('div');
   div.className = `msg ${cls}`;
   div.textContent = text;
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
-  log.push({ text, cls });
+  logArr.push({text,cls});
 }
 
 // ---- Combat ----
-function attack(attacker, defender, attackerName, defenderName) {
-  const damage = Math.max(1, attacker.atk - defender.def + Math.floor(Math.random() * 3) - 1);
-  defender.hp -= damage;
-  addLog(`${attackerName} swipes ${defenderName} for ${damage} damage!`, 'combat');
+function doAttack(attacker, defender, aName, dName) {
+  const dmg = Math.max(1, attacker.atk - defender.def + Math.floor(Math.random()*3) - 1);
+  defender.hp -= dmg;
+  addLog(`${aName} swipes ${dName} for ${dmg} damage!`, 'combat');
   return defender.hp <= 0;
 }
 
@@ -764,310 +755,371 @@ function checkLevelUp() {
   while (player.xp >= player.xpNext) {
     player.xp -= player.xpNext;
     player.level++;
-    player.xpNext = Math.floor(player.xpNext * 1.6);
-    const hpGain = 5 + Math.floor(Math.random() * 4);
-    const atkGain = Math.random() < 0.5 ? 1 : 0;
-    const defGain = Math.random() < 0.5 ? 1 : 0;
-    player.maxHp += hpGain;
-    player.hp = Math.min(player.hp + hpGain, player.maxHp);
-    player.atk += atkGain;
-    player.def += defGain;
-    addLog(`NYA~! Level ${player.level}! (+${hpGain} HP${atkGain ? ', +1 ATK' : ''}${defGain ? ', +1 DEF' : ''})`, 'levelup');
+    player.xpNext = Math.floor(player.xpNext*1.6);
+    const hpG=5+Math.floor(Math.random()*4), atkG=Math.random()<0.5?1:0, defG=Math.random()<0.5?1:0;
+    player.maxHp+=hpG; player.hp=Math.min(player.hp+hpG,player.maxHp);
+    player.atk+=atkG; player.def+=defG;
+    addLog(`NYA~! Level ${player.level}! (+${hpG} HP${atkG?', +1 ATK':''}${defG?', +1 DEF':''})`, 'levelup');
   }
 }
 
 // ---- Monster AI ----
 function monsterTurn() {
-  for (const e of entities) {
-    if (e.hp <= 0) continue;
-    const dist = Math.abs(e.x - player.x) + Math.abs(e.y - player.y);
-    if (dist <= FOV_RADIUS && visible[e.y][e.x]) e.awake = true;
+  for (let i=0; i<entities.length; i++) {
+    const e = entities[i];
+    if (e.hp<=0) continue;
+    const dist = Math.abs(e.x-player.x)+Math.abs(e.y-player.y);
+    if (dist<=FOV_RADIUS && visible[e.y] && visible[e.y][e.x]) e.awake=true;
     if (!e.awake) continue;
-
-    if (dist === 1) {
-      if (attack(e, player, e.name, 'Neko')) {
-        showDeathScreen();
-        return;
-      }
-    } else if (dist <= 8) {
-      const dx = Math.sign(player.x - e.x);
-      const dy = Math.sign(player.y - e.y);
-      const moves = Math.random() < 0.5
-        ? [{ x: e.x + dx, y: e.y }, { x: e.x, y: e.y + dy }]
-        : [{ x: e.x, y: e.y + dy }, { x: e.x + dx, y: e.y }];
+    if (dist===1) {
+      if (doAttack(e, player, e.name, 'Neko')) { showDeath(); return; }
+    } else if (dist<=8) {
+      const dx=Math.sign(player.x-e.x), dy=Math.sign(player.y-e.y);
+      const moves = Math.random()<0.5
+        ? [{x:e.x+dx,y:e.y},{x:e.x,y:e.y+dy}]
+        : [{x:e.x,y:e.y+dy},{x:e.x+dx,y:e.y}];
       for (const m of moves) {
-        if (canMoveTo(m.x, m.y) && !entityAt(m.x, m.y)) {
-          e.x = m.x; e.y = m.y; break;
+        if (canMove(m.x,m.y) && !entityAt(m.x,m.y) && !(m.x===player.x&&m.y===player.y)) {
+          e.x=m.x; e.y=m.y;
+          entityMeshes[i].position.set(e.x*TILE_SIZE, 0, e.y*TILE_SIZE);
+          break;
         }
       }
     }
   }
 }
 
-function canMoveTo(x, y) {
-  if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return false;
-  return dungeon.map[y][x] !== T.WALL && dungeon.map[y][x] !== T.WATER;
+function canMove(x,y) {
+  if(x<0||x>=COLS||y<0||y>=ROWS)return false;
+  return dungeon.map[y][x]!==T.WALL&&dungeon.map[y][x]!==T.WATER;
 }
+function entityAt(x,y) { return entities.find(e=>e.x===x&&e.y===y&&e.hp>0)||null; }
 
-function entityAt(x, y) {
-  return entities.find(e => e.x === x && e.y === y && e.hp > 0) || null;
-}
-
-// ---- Item Pickup ----
+// ---- Pickup ----
 function pickupItems() {
-  const here = items.filter(i => i.x === player.x && i.y === player.y);
-  for (const item of here) {
-    switch (item.type) {
-      case 'gold':
-        player.gold += item.amount;
-        addLog(`Neko found ${item.name}! Nya~`, 'pickup');
-        break;
-      case 'potion':
-        player.potions++;
-        addLog(`Neko found ${item.name}! (${player.potions} milks)`, 'pickup');
-        break;
+  for (let i=items.length-1; i>=0; i--) {
+    const it = items[i];
+    if (it.x!==player.x||it.y!==player.y) continue;
+    switch(it.type) {
+      case 'gold': player.gold+=it.amount; addLog(`Neko found ${it.name}! Nya~`,'pickup'); break;
+      case 'potion': player.potions++; addLog(`Neko found ${it.name}! (${player.potions} milks)`,'pickup'); break;
       case 'weapon':
-        if (item.atk > player.atk) {
-          player.atk = item.atk;
-          player.weapon = item.name;
-          addLog(`Neko equips ${item.name}! (ATK: ${item.atk})`, 'pickup');
-        } else {
-          const g = 5 + item.atk;
-          player.gold += g;
-          addLog(`${item.name} is weaker than ${player.weapon}. Sold for ${g}g~`, 'pickup');
-        }
+        if (it.atk>player.atk){player.atk=it.atk;player.weapon=it.name;addLog(`Neko equips ${it.name}! (ATK:${it.atk})`,'pickup');}
+        else {const g=5+it.atk;player.gold+=g;addLog(`${it.name} too weak. Sold for ${g}g~`,'pickup');}
         break;
       case 'armor':
-        if (item.def > player.def) {
-          player.def = item.def;
-          player.armor = item.name;
-          addLog(`Neko equips ${item.name}! (DEF: ${item.def})`, 'pickup');
-        } else {
-          const g = 5 + item.def;
-          player.gold += g;
-          addLog(`${item.name} is weaker than ${player.armor}. Sold for ${g}g~`, 'pickup');
-        }
+        if (it.def>player.def){player.def=it.def;player.armor=it.name;addLog(`Neko equips ${it.name}! (DEF:${it.def})`,'pickup');}
+        else {const g=5+it.def;player.gold+=g;addLog(`${it.name} too weak. Sold for ${g}g~`,'pickup');}
         break;
       case 'powerup': {
-        const stat = Math.random();
-        if (stat < 0.33) {
-          player.atk += 2;
-          addLog('The Spirit Orb crackles! +2 ATK!', 'levelup');
-        } else if (stat < 0.66) {
-          player.def += 2;
-          addLog('The Spirit Orb shimmers! +2 DEF!', 'levelup');
-        } else {
-          player.maxHp += 10;
-          player.hp += 10;
-          addLog('The Spirit Orb glows warmly! +10 Max HP!', 'levelup');
-        }
+        const s=Math.random();
+        if(s<0.33){player.atk+=2;addLog('Spirit Orb crackles! +2 ATK!','levelup');}
+        else if(s<0.66){player.def+=2;addLog('Spirit Orb shimmers! +2 DEF!','levelup');}
+        else {player.maxHp+=10;player.hp+=10;addLog('Spirit Orb glows! +10 Max HP!','levelup');}
         break;
       }
     }
-    items.splice(items.indexOf(item), 1);
+    scene.remove(itemMeshes[i]);
+    items.splice(i,1);
+    itemMeshes.splice(i,1);
   }
 }
 
-// ---- Floor transitions ----
-function descendFloor() {
-  if (dungeon.map[player.y][player.x] !== T.STAIRS_DOWN) {
-    addLog('No stairs here, nya...', 'info');
-    return false;
-  }
-  player.floor++;
-  if (player.floor > MAX_FLOOR) {
-    showWinScreen();
-    return true;
-  }
-  addLog(`Neko descends to floor ${player.floor}... *pitter patter*`, 'descend');
-  loadFloor();
-  return true;
-}
-
-function loadFloor() {
-  const gen = generateDungeon(player.floor);
-  dungeon = gen;
-  entities = spawnMonsters(gen.rooms, player.floor);
-  items = spawnItems(gen.rooms, player.floor, gen.map);
-  explored = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
-  player.x = gen.rooms[0].cx;
-  player.y = gen.rooms[0].cy;
-  render();
-}
-
-// ---- Player actions ----
+// ---- Movement with animation ----
 function movePlayer(dx, dy) {
-  const nx = player.x + dx, ny = player.y + dy;
-  if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return;
+  if (animating || gameState !== 'playing') return;
+  const nx=player.x+dx, ny=player.y+dy;
+  if(nx<0||nx>=COLS||ny<0||ny>=ROWS)return;
+
+  // Face direction
+  if (dx!==0||dy!==0) player.facing = Math.atan2(dx, dy);
 
   const monster = entityAt(nx, ny);
   if (monster) {
-    if (attack(player, monster, 'Neko', monster.name)) {
-      addLog(`${monster.name} is defeated! Nya~!`, 'combat');
-      player.xp += monster.xp;
-      player.monstersSlain++;
-      checkLevelUp();
-    }
+    // Attack animation
+    animateAttack(dx, dy, () => {
+      if (doAttack(player, monster, 'Neko', monster.name)) {
+        addLog(`${monster.name} defeated! Nya~!`, 'combat');
+        player.xp += monster.xp;
+        player.monstersSlain++;
+        checkLevelUp();
+        const idx = entities.indexOf(monster);
+        if (idx>=0) entityMeshes[idx].visible = false;
+      }
+      monsterTurn();
+      turnCount++;
+      updateVisibility();
+      updateHUD();
+    });
+    return;
+  }
+
+  if (!canMove(nx, ny)) return;
+
+  // Smooth move
+  animateMove(nx, ny, () => {
+    player.x=nx; player.y=ny;
+    pickupItems();
     monsterTurn();
     turnCount++;
-    render();
-    return;
-  }
-
-  if (!canMoveTo(nx, ny)) return;
-  player.x = nx; player.y = ny;
-  pickupItems();
-  monsterTurn();
-  turnCount++;
-  render();
+    updateVisibility();
+    updateHUD();
+  });
 }
 
-function rest() {
-  if (player.hp < player.maxHp) {
-    player.hp = Math.min(player.hp + 1, player.maxHp);
-    addLog('Neko takes a little nap... (+1 HP) zzz', 'info');
+function animateMove(tx, ty, cb) {
+  animating = true;
+  const startX = catMesh.position.x, startZ = catMesh.position.z;
+  const endX = tx*TILE_SIZE, endZ = ty*TILE_SIZE;
+  const dur = 150;
+  const startTime = performance.now();
+  catMesh.rotation.y = player.facing;
+
+  function step(now) {
+    const t = Math.min((now - startTime) / dur, 1);
+    const ease = t < 0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+    catMesh.position.x = startX + (endX-startX)*ease;
+    catMesh.position.z = startZ + (endZ-startZ)*ease;
+    // Little hop
+    catMesh.position.y = Math.sin(t*Math.PI)*0.15;
+    if (t<1) requestAnimationFrame(step);
+    else { catMesh.position.y=0; animating=false; cb(); }
   }
-  monsterTurn();
-  turnCount++;
-  render();
+  requestAnimationFrame(step);
 }
 
-function quaffPotion() {
-  if (player.potions <= 0) {
-    addLog('No milk left, nya...', 'info');
-    return;
+function animateAttack(dx, dy, cb) {
+  animating = true;
+  const startX = catMesh.position.x, startZ = catMesh.position.z;
+  const lungeX = startX + dx*TILE_SIZE*0.35;
+  const lungeZ = startZ + dy*TILE_SIZE*0.35;
+  catMesh.rotation.y = player.facing;
+  const dur = 200;
+  const startTime = performance.now();
+
+  function step(now) {
+    const t = Math.min((now-startTime)/dur, 1);
+    const lungeT = t < 0.4 ? t/0.4 : 1 - (t-0.4)/0.6;
+    catMesh.position.x = startX + (lungeX-startX)*lungeT;
+    catMesh.position.z = startZ + (lungeZ-startZ)*lungeT;
+    if (t<1) requestAnimationFrame(step);
+    else { animating=false; cb(); }
   }
-  const heal = 15 + player.floor * 2;
+  requestAnimationFrame(step);
+}
+
+// ---- Actions ----
+function doRest() {
+  if (animating||gameState!=='playing') return;
+  if (player.hp<player.maxHp) {
+    player.hp=Math.min(player.hp+1,player.maxHp);
+    addLog('Neko takes a nap... (+1 HP) zzz','info');
+  }
+  monsterTurn(); turnCount++;
+  updateVisibility(); updateHUD();
+}
+
+function doPotion() {
+  if (animating||gameState!=='playing') return;
+  if (player.potions<=0){addLog('No milk left, nya...','info');return;}
+  const heal=15+player.floor*2;
   player.potions--;
-  player.hp = Math.min(player.hp + heal, player.maxHp);
-  addLog(`Neko drinks warm milk~ (+${heal} HP, ${player.potions} left)`, 'pickup');
-  monsterTurn();
-  turnCount++;
-  render();
+  player.hp=Math.min(player.hp+heal,player.maxHp);
+  addLog(`Neko drinks warm milk~ (+${heal} HP, ${player.potions} left)`,'pickup');
+  monsterTurn(); turnCount++;
+  updateVisibility(); updateHUD();
+}
+
+function doStairs() {
+  if (animating||gameState!=='playing') return;
+  if (dungeon.map[player.y][player.x]!==T.STAIRS_DOWN){addLog('No stairs here, nya...','info');return;}
+  player.floor++;
+  if (player.floor>MAX_FLOOR){showWin();return;}
+  addLog(`Neko descends to floor ${player.floor}... *pitter patter*`,'descend');
+  loadFloor();
+}
+
+// ---- Floor Loading ----
+function loadFloor() {
+  dungeon = generateDungeon(player.floor);
+  explored = Array.from({length:ROWS},()=>Array(COLS).fill(false));
+  buildDungeon3D();
+  spawnMonsters3D(dungeon.rooms, player.floor);
+  spawnItems3D(dungeon.rooms, player.floor, dungeon.map);
+  player.x = dungeon.rooms[0].cx;
+  player.y = dungeon.rooms[0].cy;
+  player.facing = 0;
+  catMesh.position.set(player.x*TILE_SIZE, 0, player.y*TILE_SIZE);
+  catMesh.rotation.y = 0;
+  updateVisibility();
+  updateCamera(true);
+  updateHUD();
 }
 
 // ---- Screens ----
 function showScreen(id) {
-  document.querySelectorAll('#title-screen, #game-screen, #death-screen, #win-screen').forEach(el => el.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  ['title-screen','death-screen','win-screen'].forEach(s => document.getElementById(s).classList.remove('active'));
+  if(id) document.getElementById(id).classList.add('active');
+  const playing = !id;
+  document.getElementById('hud').classList.toggle('active', playing);
+  document.getElementById('log-panel').classList.toggle('active', playing);
+  document.getElementById('kb-hint').classList.toggle('active', playing);
 }
 
-function showDeathScreen() {
-  state = 'dead';
+function showDeath() {
+  gameState='dead';
   showScreen('death-screen');
   document.getElementById('death-stats').innerHTML =
-    `Reached <span style="color:#cc88ff">Floor ${player.floor}</span> of ${MAX_FLOOR}<br>` +
-    `Level <span style="color:#88eebb">${player.level}</span> kitty adventurer<br>` +
-    `<span style="color:#ffdd44">${player.gold}</span> gold collected<br>` +
-    `<span style="color:#ff8899">${player.monstersSlain}</span> yokai defeated<br>` +
-    `<span style="color:#99bbff">${turnCount}</span> paw steps taken`;
+    `Reached <span style="color:#cc88ff">Floor ${player.floor}</span> of ${MAX_FLOOR}<br>`+
+    `Level <span style="color:#88eebb">${player.level}</span> kitty<br>`+
+    `<span style="color:#ffdd44">${player.gold}</span> gold<br>`+
+    `<span style="color:#ff8899">${player.monstersSlain}</span> yokai defeated<br>`+
+    `<span style="color:#99bbff">${turnCount}</span> paw steps`;
 }
 
-function showWinScreen() {
-  state = 'win';
+function showWin() {
+  gameState='win';
   showScreen('win-screen');
   document.getElementById('win-stats').innerHTML =
-    `Conquered all <span style="color:#cc88ff">${MAX_FLOOR}</span> floors!<br>` +
-    `Level <span style="color:#88eebb">${player.level}</span> legendary neko<br>` +
-    `<span style="color:#ffdd44">${player.gold}</span> gold collected<br>` +
-    `<span style="color:#ff8899">${player.monstersSlain}</span> yokai defeated<br>` +
-    `<span style="color:#99bbff">${turnCount}</span> paw steps taken`;
+    `Conquered all <span style="color:#cc88ff">${MAX_FLOOR}</span> floors!<br>`+
+    `Level <span style="color:#88eebb">${player.level}</span> legendary neko<br>`+
+    `<span style="color:#ffdd44">${player.gold}</span> gold<br>`+
+    `<span style="color:#ff8899">${player.monstersSlain}</span> yokai defeated<br>`+
+    `<span style="color:#99bbff">${turnCount}</span> paw steps`;
 }
 
 function startGame() {
-  state = 'playing';
-  player = initPlayer();
-  log = [];
-  turnCount = 0;
-  document.getElementById('log').innerHTML = '';
-  showScreen('game-screen');
-  addLog('Neko enters the mysterious cave... *sniff sniff*', 'descend');
-  addLog('Find the stairs on each floor. Survive 10 floors to win, nya~!', 'info');
+  gameState='playing';
+  player=initPlayer();
+  logArr=[];
+  turnCount=0;
+  document.getElementById('log-panel').innerHTML='';
+
+  if (!catMesh) {
+    catMesh = createCat();
+    scene.add(catMesh);
+  }
+
+  showScreen(null);
+  addLog('Neko enters the mysterious cave... *sniff sniff*','descend');
+  addLog('Find the stairs on each floor. Survive 10 floors to win, nya~!','info');
   loadFloor();
 }
 
-// ---- Keyboard Input ----
+// ---- Animation Loop ----
+let clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const time = clock.getElapsedTime();
+
+  if (gameState === 'playing') {
+    updateCamera(false);
+
+    // Cat idle animation - tail wag & gentle bob
+    if (catMesh && !animating) {
+      catMesh.position.y = Math.sin(time * 2) * 0.03;
+      if (catMesh.userData.tail) {
+        // Subtle rotation to simulate tail wag
+      }
+    }
+
+    // Item bob & spin
+    for (let i=0; i<itemMeshes.length; i++) {
+      if (!itemMeshes[i].visible) continue;
+      const m = itemMeshes[i];
+      const child = m.children[0];
+      if (child) {
+        child.position.y = 0.3 + Math.sin(time * 3 + (m.userData.bobOffset||0)) * 0.1;
+        child.rotation.y = time * 2;
+      }
+    }
+
+    // Monster idle bob
+    for (let i=0; i<entityMeshes.length; i++) {
+      if (!entityMeshes[i].visible) continue;
+      const m = entityMeshes[i];
+      m.children[0].position.y += Math.sin(time * 2.5 + i) * 0.002;
+    }
+
+    // Flickering torch effect
+    playerLight.intensity = 1.8 + Math.sin(time*8)*0.15 + Math.sin(time*13)*0.1;
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// ---- Input ----
 document.addEventListener('keydown', (e) => {
-  if (state === 'title') {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startGame(); }
+  if (gameState==='title') {
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();startGame();}
     return;
   }
-  if (state === 'dead' || state === 'win') {
-    if (e.key === 'Enter') { e.preventDefault(); state = 'title'; showScreen('title-screen'); }
+  if (gameState==='dead'||gameState==='win') {
+    if(e.key==='Enter'){e.preventDefault();gameState='title';showScreen('title-screen');}
     return;
   }
-  if (state !== 'playing') return;
-  switch (e.key) {
-    case 'ArrowUp': case 'w': case 'W': e.preventDefault(); movePlayer(0, -1); break;
-    case 'ArrowDown': case 's': case 'S': e.preventDefault(); movePlayer(0, 1); break;
-    case 'ArrowLeft': case 'a': case 'A': e.preventDefault(); movePlayer(-1, 0); break;
-    case 'ArrowRight': case 'd': case 'D': e.preventDefault(); movePlayer(1, 0); break;
-    case 'e': case 'E': e.preventDefault(); descendFloor(); render(); break;
-    case 'r': case 'R': e.preventDefault(); rest(); break;
-    case 'q': case 'Q': e.preventDefault(); quaffPotion(); break;
+  if (gameState!=='playing') return;
+  switch(e.key) {
+    case 'ArrowUp':case 'w':case 'W': e.preventDefault();movePlayer(0,-1);break;
+    case 'ArrowDown':case 's':case 'S': e.preventDefault();movePlayer(0,1);break;
+    case 'ArrowLeft':case 'a':case 'A': e.preventDefault();movePlayer(-1,0);break;
+    case 'ArrowRight':case 'd':case 'D': e.preventDefault();movePlayer(1,0);break;
+    case 'e':case 'E': e.preventDefault();doStairs();break;
+    case 'r':case 'R': e.preventDefault();doRest();break;
+    case 'q':case 'Q': e.preventDefault();doPotion();break;
   }
 });
 
-// ---- Touch: Tap screens ----
-document.getElementById('title-screen').addEventListener('click', () => {
-  if (state === 'title') startGame();
-});
-document.getElementById('death-screen').addEventListener('click', () => {
-  if (state === 'dead') { state = 'title'; showScreen('title-screen'); }
-});
-document.getElementById('win-screen').addEventListener('click', () => {
-  if (state === 'win') { state = 'title'; showScreen('title-screen'); }
-});
+// Touch screens
+document.getElementById('start-btn').addEventListener('click', ()=>{ if(gameState==='title')startGame(); });
+document.getElementById('death-btn').addEventListener('click', ()=>{ if(gameState==='dead'){gameState='title';showScreen('title-screen');} });
+document.getElementById('win-btn').addEventListener('click', ()=>{ if(gameState==='win'){gameState='title';showScreen('title-screen');} });
 
-// ---- Touch: D-pad ----
+// D-pad
 document.querySelectorAll('.dpad-btn[data-dir]').forEach(btn => {
   const handler = () => {
-    if (state !== 'playing') return;
-    switch (btn.dataset.dir) {
-      case 'up':    movePlayer(0, -1); break;
-      case 'down':  movePlayer(0, 1); break;
-      case 'left':  movePlayer(-1, 0); break;
-      case 'right': movePlayer(1, 0); break;
-      case 'wait':  rest(); break;
+    if(gameState!=='playing')return;
+    switch(btn.dataset.dir){
+      case 'up':movePlayer(0,-1);break;case 'down':movePlayer(0,1);break;
+      case 'left':movePlayer(-1,0);break;case 'right':movePlayer(1,0);break;
+      case 'wait':doRest();break;
     }
   };
-  btn.addEventListener('touchstart', (e) => { e.preventDefault(); handler(); });
+  btn.addEventListener('touchstart', e=>{e.preventDefault();handler();});
   btn.addEventListener('click', handler);
 });
 
-// ---- Touch: Action buttons ----
-document.getElementById('btn-stairs').addEventListener('click', () => {
-  if (state === 'playing') { descendFloor(); render(); }
-});
-document.getElementById('btn-potion').addEventListener('click', () => {
-  if (state === 'playing') quaffPotion();
-});
-document.getElementById('btn-rest').addEventListener('click', () => {
-  if (state === 'playing') rest();
-});
+// Action buttons
+document.getElementById('btn-stairs').addEventListener('click', doStairs);
+document.getElementById('btn-potion').addEventListener('click', doPotion);
+document.getElementById('btn-rest').addEventListener('click', doRest);
 
-// ---- Touch: Swipe on map ----
-let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
-const mapEl = document.getElementById('map');
-
-mapEl.addEventListener('touchstart', (e) => {
-  if (state !== 'playing') return;
-  const t = e.touches[0];
-  touchStartX = t.clientX; touchStartY = t.clientY;
-  touchStartTime = Date.now();
+// Swipe on canvas
+let tX=0,tY=0,tT=0;
+renderer.domElement.addEventListener('touchstart', e=>{
+  if(gameState!=='playing')return;
+  const t=e.touches[0]; tX=t.clientX; tY=t.clientY; tT=Date.now();
   e.preventDefault();
-}, { passive: false });
-
-mapEl.addEventListener('touchend', (e) => {
-  if (state !== 'playing') return;
-  const t = e.changedTouches[0];
-  const dx = t.clientX - touchStartX, dy = t.clientY - touchStartY;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist < 20 || Date.now() - touchStartTime > 500) return;
-  if (Math.abs(dx) > Math.abs(dy)) movePlayer(dx > 0 ? 1 : -1, 0);
-  else movePlayer(0, dy > 0 ? 1 : -1);
+},{passive:false});
+renderer.domElement.addEventListener('touchend', e=>{
+  if(gameState!=='playing')return;
+  const t=e.changedTouches[0];
+  const dx=t.clientX-tX, dy=t.clientY-tY;
+  const d=Math.sqrt(dx*dx+dy*dy);
+  if(d<25||Date.now()-tT>500)return;
+  if(Math.abs(dx)>Math.abs(dy)) movePlayer(dx>0?1:-1, 0);
+  else movePlayer(0, dy>0?1:-1);
   e.preventDefault();
-}, { passive: false });
+},{passive:false});
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 </script>
 </body>
 </html>
