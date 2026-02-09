@@ -217,8 +217,8 @@
   <div class="title-cat">&#x1F431;</div>
   <div class="title-name">NEKO CAVE</div>
   <div class="title-sub">&#x732B;&#x306E;&#x6D1E;&#x7A9F;&#x63A2;&#x691C;</div>
-  <div class="title-desc">Guide a brave kitty through 10 floors of yokai-infested caves in 3D!</div>
-  <div class="title-3d">&#x2728; Now in full 3D &#x2728;</div>
+  <div class="title-desc">Guide a brave kitty through 10 floors of yokai-infested caves in a neon-lit downtown!</div>
+  <div class="title-3d">&#x2728; Neon 3D Edition &#x2728;</div>
   <div class="prompt" id="start-btn">&#x1F43E; Tap or press ENTER to begin &#x1F43E;</div>
 </div>
 
@@ -292,10 +292,10 @@ const T = { WALL: '#', FLOOR: '.', STAIRS_DOWN: '>', STAIRS_UP: '<', WATER: '~' 
 
 // ---- Three.js Setup ----
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x08040c);
-scene.fog = new THREE.FogExp2(0x08040c, 0.06);
+scene.background = new THREE.Color(0x050014);
+scene.fog = new THREE.FogExp2(0x050014, 0.018);
 
-const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
 const renderer = new THREE.WebGLRenderer({
   antialias: !isMobile,
   powerPreference: isMobile ? 'low-power' : 'high-performance',
@@ -310,9 +310,13 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 document.body.prepend(renderer.domElement);
 
-// Ambient light - brighter on mobile since no shadows
-const ambient = new THREE.AmbientLight(0x1a0e2e, isMobile ? 0.6 : 0.3);
+// Ambient light - brighter on mobile since no shadows, neon purple tint
+const ambient = new THREE.AmbientLight(0x2a1848, isMobile ? 0.7 : 0.4);
 scene.add(ambient);
+
+// Subtle neon hemisphere light (sky=purple, ground=cyan reflection)
+const hemiLight = new THREE.HemisphereLight(0x220044, 0x003322, 0.25);
+scene.add(hemiLight);
 
 // Player point light (torch / FOV)
 const playerLight = new THREE.PointLight(0xffeedd, isMobile ? 2.2 : 1.8, 18, 1.5);
@@ -561,6 +565,238 @@ let comboTimer = null;
 let shakeIntensity = 0;
 let particles = [];
 let dyingMonsters = [];
+let cityGroup = null;
+let neonSigns = [];
+
+// ---- Neon Downtown Skyline ----
+function buildNeonCity() {
+  if (cityGroup) {
+    cityGroup.traverse(c => { if (c.geometry) c.geometry.dispose(); });
+    scene.remove(cityGroup);
+  }
+  cityGroup = new THREE.Group();
+  neonSigns = [];
+
+  const dungeonCX = COLS * TILE_SIZE / 2;
+  const dungeonCZ = ROWS * TILE_SIZE / 2;
+  const NEON = [0xff0066, 0x00ffcc, 0xff6600, 0x6622ff, 0x00aaff, 0xff00ff, 0xffaa00, 0x00ff88, 0xff3388, 0x22ccff];
+
+  // --- Sky dome with gradient + stars ---
+  const skyCanvas = document.createElement('canvas');
+  skyCanvas.width = 512; skyCanvas.height = 512;
+  const sctx = skyCanvas.getContext('2d');
+  const grad = sctx.createLinearGradient(0, 0, 0, 512);
+  grad.addColorStop(0, '#020010');
+  grad.addColorStop(0.2, '#0a0030');
+  grad.addColorStop(0.45, '#180848');
+  grad.addColorStop(0.65, '#220a50');
+  grad.addColorStop(0.8, '#1a0638');
+  grad.addColorStop(1, '#0d0220');
+  sctx.fillStyle = grad;
+  sctx.fillRect(0, 0, 512, 512);
+  // Stars
+  for (let i = 0; i < 300; i++) {
+    const sx = Math.random() * 512, sy = Math.random() * 300;
+    const sr = Math.random() * 1.5 + 0.3;
+    const bright = 150 + Math.floor(Math.random() * 105);
+    sctx.fillStyle = `rgba(${bright},${bright},${200+Math.floor(Math.random()*55)},${0.3+Math.random()*0.7})`;
+    sctx.beginPath(); sctx.arc(sx, sy, sr, 0, Math.PI * 2); sctx.fill();
+  }
+  // Neon haze glow at horizon
+  const haze = sctx.createLinearGradient(0, 280, 0, 420);
+  haze.addColorStop(0, 'rgba(100,20,160,0)');
+  haze.addColorStop(0.5, 'rgba(160,40,200,0.12)');
+  haze.addColorStop(1, 'rgba(80,10,120,0)');
+  sctx.fillStyle = haze;
+  sctx.fillRect(0, 280, 512, 140);
+
+  const skyTex = new THREE.CanvasTexture(skyCanvas);
+  const skyGeo = new THREE.SphereGeometry(180, 24, 16);
+  const skyMat = new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false });
+  const sky = new THREE.Mesh(skyGeo, skyMat);
+  sky.position.set(dungeonCX, 0, dungeonCZ);
+  cityGroup.add(sky);
+
+  // --- Ground plane with wet reflection look ---
+  const gndGeo = new THREE.PlaneGeometry(400, 400);
+  const gndMat = new THREE.MeshStandardMaterial({
+    color: 0x06020e, roughness: 0.4, metalness: 0.6
+  });
+  const ground = new THREE.Mesh(gndGeo, gndMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set(dungeonCX, -0.1, dungeonCZ);
+  ground.receiveShadow = !isMobile;
+  cityGroup.add(ground);
+
+  // --- Buildings ---
+  const bldgCount = isMobile ? 50 : 100;
+  const bldgDarkMat = new THREE.MeshStandardMaterial({ color: 0x08030f, roughness: 0.85, metalness: 0.4 });
+
+  for (let i = 0; i < bldgCount; i++) {
+    // Place in ring around dungeon
+    const angle = (i / bldgCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+    const ring = Math.random() < 0.5 ? 0 : 1; // two rings
+    const dist = 38 + ring * 18 + Math.random() * 15;
+    const bx = dungeonCX + Math.cos(angle) * dist;
+    const bz = dungeonCZ + Math.sin(angle) * dist;
+    const bw = 2 + Math.random() * 5;
+    const bd = 2 + Math.random() * 5;
+    const bh = 6 + Math.random() * (ring === 1 ? 35 : 22);
+
+    const bGeo = new THREE.BoxGeometry(bw, bh, bd);
+    const bMesh = new THREE.Mesh(bGeo, bldgDarkMat);
+    bMesh.position.set(bx, bh / 2, bz);
+    cityGroup.add(bMesh);
+
+    // Neon window strips on the face facing the dungeon
+    const neonCol = NEON[Math.floor(Math.random() * NEON.length)];
+    const rows = Math.floor(bh / 2.5);
+    for (let r = 0; r < rows; r++) {
+      if (Math.random() < 0.35) continue; // dark windows
+      const litW = bw * (0.5 + Math.random() * 0.3);
+      const litH = 0.35 + Math.random() * 0.2;
+      const stripGeo = new THREE.PlaneGeometry(litW, litH);
+      const col = Math.random() < 0.7 ? neonCol : NEON[Math.floor(Math.random() * NEON.length)];
+      const stripMat = new THREE.MeshBasicMaterial({
+        color: col, transparent: true, opacity: 0.3 + Math.random() * 0.5,
+        side: THREE.DoubleSide, fog: false
+      });
+      const strip = new THREE.Mesh(stripGeo, stripMat);
+      const sy = 1.5 + r * 2.5 + (Math.random() - 0.5);
+      strip.position.set(bx, sy, bz);
+      strip.lookAt(dungeonCX, sy, dungeonCZ);
+      strip.translateZ(bd / 2 + 0.06);
+      cityGroup.add(strip);
+    }
+
+    // Rooftop antenna / neon light for taller buildings
+    if (bh > 18 && Math.random() < 0.5) {
+      const antGeo = new THREE.CylinderGeometry(0.05, 0.05, 3, 4);
+      const antMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+      const ant = new THREE.Mesh(antGeo, antMat);
+      ant.position.set(bx, bh + 1.5, bz);
+      cityGroup.add(ant);
+      // Blinking light on top
+      const tipGeo = new THREE.SphereGeometry(0.15, 4, 4);
+      const tipColor = Math.random() < 0.5 ? 0xff0044 : 0x00ffaa;
+      const tipMat = new THREE.MeshBasicMaterial({ color: tipColor, fog: false });
+      const tip = new THREE.Mesh(tipGeo, tipMat);
+      tip.position.set(bx, bh + 3.2, bz);
+      tip.userData.blink = true;
+      tip.userData.blinkSpeed = 1 + Math.random() * 3;
+      tip.userData.blinkOffset = Math.random() * Math.PI * 2;
+      cityGroup.add(tip);
+      neonSigns.push(tip);
+    }
+  }
+
+  // --- Large neon signs floating on buildings ---
+  const signCount = isMobile ? 6 : 14;
+  for (let i = 0; i < signCount; i++) {
+    const angle = (i / signCount) * Math.PI * 2 + Math.random() * 0.5;
+    const dist = 40 + Math.random() * 25;
+    const sx = dungeonCX + Math.cos(angle) * dist;
+    const sz = dungeonCZ + Math.sin(angle) * dist;
+    const sy = 5 + Math.random() * 18;
+    const sw = 2.5 + Math.random() * 4;
+    const sh = 1.2 + Math.random() * 2.5;
+    const sColor = NEON[Math.floor(Math.random() * NEON.length)];
+
+    // Sign backing (dark panel)
+    const backGeo = new THREE.PlaneGeometry(sw + 0.6, sh + 0.4);
+    const backMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0510, roughness: 0.9, side: THREE.DoubleSide
+    });
+    const back = new THREE.Mesh(backGeo, backMat);
+    back.position.set(sx, sy, sz);
+    back.lookAt(dungeonCX, sy, dungeonCZ);
+    cityGroup.add(back);
+
+    // Neon glow sign
+    const signGeo = new THREE.PlaneGeometry(sw, sh);
+    const signMat = new THREE.MeshBasicMaterial({
+      color: sColor, transparent: true, opacity: 0.6 + Math.random() * 0.35,
+      side: THREE.DoubleSide, fog: false
+    });
+    const sign = new THREE.Mesh(signGeo, signMat);
+    sign.position.set(sx, sy, sz);
+    sign.lookAt(dungeonCX, sy, dungeonCZ);
+    sign.translateZ(0.08);
+    sign.userData.neonSign = true;
+    sign.userData.baseOpacity = signMat.opacity;
+    sign.userData.flickerSpeed = 0.8 + Math.random() * 6;
+    sign.userData.flickerOffset = Math.random() * Math.PI * 2;
+    sign.userData.flickerStyle = Math.random() < 0.3 ? 'buzz' : 'pulse';
+    cityGroup.add(sign);
+    neonSigns.push(sign);
+
+    // Neon border outline (thin glowing frame)
+    const fGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(sw + 0.2, sh + 0.15));
+    const fMat = new THREE.LineBasicMaterial({ color: sColor, transparent: true, opacity: 0.8 });
+    const frame = new THREE.LineSegments(fGeo, fMat);
+    frame.position.copy(sign.position);
+    frame.rotation.copy(sign.rotation);
+    cityGroup.add(frame);
+  }
+
+  // --- Neon ground puddle reflections (glowing planes on ground) ---
+  const puddleCount = isMobile ? 5 : 12;
+  for (let i = 0; i < puddleCount; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 20 + Math.random() * 40;
+    const px = dungeonCX + Math.cos(angle) * dist;
+    const pz = dungeonCZ + Math.sin(angle) * dist;
+    const pw = 2 + Math.random() * 4, pd = 1 + Math.random() * 3;
+    const pColor = NEON[Math.floor(Math.random() * NEON.length)];
+    const pudGeo = new THREE.PlaneGeometry(pw, pd);
+    const pudMat = new THREE.MeshBasicMaterial({
+      color: pColor, transparent: true, opacity: 0.06 + Math.random() * 0.06,
+      side: THREE.DoubleSide
+    });
+    const pud = new THREE.Mesh(pudGeo, pudMat);
+    pud.rotation.x = -Math.PI / 2;
+    pud.position.set(px, 0.02, pz);
+    cityGroup.add(pud);
+  }
+
+  // --- Atmospheric neon point lights ---
+  const nlCount = isMobile ? 3 : 8;
+  for (let i = 0; i < nlCount; i++) {
+    const angle = (i / nlCount) * Math.PI * 2;
+    const dist = 32 + Math.random() * 10;
+    const lx = dungeonCX + Math.cos(angle) * dist;
+    const lz = dungeonCZ + Math.sin(angle) * dist;
+    const lColor = NEON[Math.floor(Math.random() * NEON.length)];
+    const nLight = new THREE.PointLight(lColor, 0.6, 35, 2);
+    nLight.position.set(lx, 4 + Math.random() * 6, lz);
+    cityGroup.add(nLight);
+  }
+
+  scene.add(cityGroup);
+}
+
+// ---- Animate Neon Signs ----
+function updateNeonSigns(time) {
+  for (const s of neonSigns) {
+    if (s.userData.blink) {
+      // Antenna blink
+      const on = Math.sin(time * s.userData.blinkSpeed + s.userData.blinkOffset) > 0.3;
+      s.visible = on;
+    } else if (s.userData.neonSign && s.material) {
+      const base = s.userData.baseOpacity || 0.7;
+      const spd = s.userData.flickerSpeed || 3;
+      const off = s.userData.flickerOffset || 0;
+      if (s.userData.flickerStyle === 'buzz') {
+        // Rapid random flicker like a buzzing neon tube
+        const buzz = Math.sin(time * spd * 10 + off) * Math.sin(time * spd * 7.3 + off * 2);
+        s.material.opacity = base * (0.5 + buzz * 0.5);
+      } else {
+        // Smooth pulse
+        s.material.opacity = base * (0.7 + Math.sin(time * spd + off) * 0.3);
+      }
+    }
+  }
+}
 
 function initPlayer() {
   return {
@@ -1323,7 +1559,8 @@ function startGame() {
   }
 
   showScreen(null);
-  addLog('Neko enters the mysterious cave... *sniff sniff*','descend');
+  buildNeonCity();
+  addLog('Neko enters the neon-lit downtown cave... *sniff sniff*','descend');
   addLog('Find the stairs on each floor. Survive 10 floors to win, nya~!','info');
   loadFloor();
 }
@@ -1390,6 +1627,9 @@ function animate() {
 
     // Flickering torch effect
     playerLight.intensity = (isMobile ? 2.2 : 1.8) + Math.sin(time*8)*0.15 + Math.sin(time*13)*0.1;
+
+    // Animate neon signs
+    updateNeonSigns(time);
 
     // Render minimap every few frames
     if (Math.floor(time * 10) % 3 === 0) renderMinimap();
