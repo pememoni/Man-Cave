@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-<title>Neko Cave 3D ~ A Kawaii Dungeon Adventure</title>
+<title>Cyrus the Great ~ A Neon Dungeon Adventure</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -215,17 +215,17 @@
 <!-- TITLE -->
 <div id="title-screen" class="overlay active">
   <div class="title-cat">&#x1F431;</div>
-  <div class="title-name">NEKO CAVE</div>
-  <div class="title-sub">&#x732B;&#x306E;&#x6D1E;&#x7A9F;&#x63A2;&#x691C;</div>
-  <div class="title-desc">Guide a brave kitty through 10 floors of yokai-infested caves in a neon-lit downtown!</div>
-  <div class="title-3d">&#x2728; Neon 3D Edition &#x2728;</div>
+  <div class="title-name">CYRUS THE GREAT</div>
+  <div class="title-sub">&#x1F431; Neon Dungeon Crawler &#x1F431;</div>
+  <div class="title-desc">Guide Cyrus the orange cat through 10 floors of monster-infested neon caves!</div>
+  <div class="title-3d">&#x2728; Downtown Neon 3D &#x2728;</div>
   <div class="prompt" id="start-btn">&#x1F43E; Tap or press ENTER to begin &#x1F43E;</div>
 </div>
 
 <!-- DEATH -->
 <div id="death-screen" class="overlay">
   <div class="death-cat">&#x1F63F;</div>
-  <div class="death-title">Oh no! Neko fainted...</div>
+  <div class="death-title">Oh no! Cyrus fainted...</div>
   <div class="screen-stats" id="death-stats"></div>
   <div class="prompt" id="death-btn">&#x1F43E; Tap or press ENTER to try again &#x1F43E;</div>
 </div>
@@ -233,8 +233,8 @@
 <!-- WIN -->
 <div id="win-screen" class="overlay">
   <div class="win-cat">&#x1F63B;</div>
-  <div class="win-title">&#x2728; Neko is Victorious! &#x2728;</div>
-  <div class="win-sub">The cave is conquered, nya~!</div>
+  <div class="win-title">&#x2728; Cyrus is Victorious! &#x2728;</div>
+  <div class="win-sub">The cave is conquered! Long live Cyrus the Great!</div>
   <div class="screen-stats" id="win-stats"></div>
   <div class="prompt" id="win-btn">&#x1F43E; Tap or press ENTER to play again &#x1F43E;</div>
 </div>
@@ -279,7 +279,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 // ============================================================
-//  NEKO CAVE 3D ~ A Kawaii Dungeon Crawler
+//  CYRUS THE GREAT ~ A Neon Dungeon Crawler
 // ============================================================
 
 // ---- Mobile detection ----
@@ -349,7 +349,7 @@ function createCat() {
   const cat = new THREE.Group();
 
   // Body (cylinder + sphere caps for max compatibility)
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff8c00, roughness: 0.6, emissive: 0x662200, emissiveIntensity: 0.15 });
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf5a623, roughness: 0.6, emissive: 0x884400, emissiveIntensity: 0.15 });
   const bodyCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.5, 12), bodyMat);
   bodyCyl.rotation.x = Math.PI / 2;
   bodyCyl.position.y = 0.45;
@@ -373,7 +373,7 @@ function createCat() {
 
   // Ears
   const earGeo = new THREE.ConeGeometry(0.12, 0.22, 4);
-  const earMat = new THREE.MeshStandardMaterial({ color: 0xff6600, roughness: 0.6 });
+  const earMat = new THREE.MeshStandardMaterial({ color: 0xf0952a, roughness: 0.6 });
   const earL = new THREE.Mesh(earGeo, earMat);
   earL.position.set(-0.18, 0.92, 0.38);
   earL.rotation.z = -0.2;
@@ -551,7 +551,7 @@ const MONSTERS = {
   yokai_king:{ name: 'Y\u014Dkai King',hp:60, atk:12, def:10, xp: 60, floors: [10,10]},
 };
 
-const WEAPON_NAMES = ['Wooden Chopsticks','Bamboo Claw','Koi Blade','Neko Tanto','Fox Fang Katana','Thunder Paw','Moon Claw','Sakura Blade','Dragon Whisker','Legendary Maneki Neko'];
+const WEAPON_NAMES = ['Wooden Chopsticks','Bamboo Claw','Koi Blade','Cyrus Tanto','Fox Fang Katana','Thunder Paw','Moon Claw','Sakura Blade','Dragon Whisker','Legendary Blade of Cyrus'];
 const ARMOR_NAMES = ['Paper Collar','Fish Scale Vest','Silk Ribbon','Bamboo Shell','Jade Bell Collar','Kitsune Fur Cloak','Samurai Kitty Armor','Moonstone Pendant','Golden Daruma Shield','Armor of the Nine Lives'];
 
 // ---- Game State ----
@@ -1247,20 +1247,20 @@ function updateDyingMonsters() {
 // ---- Combat ----
 function doAttack(attacker, defender, aName, dName) {
   // Critical hit! 15% chance for player, 5% for monsters
-  const critChance = aName === 'Neko' ? 0.15 : 0.05;
+  const critChance = aName === 'Cyrus' ? 0.15 : 0.05;
   const isCrit = Math.random() < critChance;
   let dmg = Math.max(1, attacker.atk - defender.def + Math.floor(Math.random()*3) - 1);
   if (isCrit) dmg = Math.floor(dmg * 2.2);
 
   // Combo bonus for player
-  if (aName === 'Neko' && comboCount >= 2) {
+  if (aName === 'Cyrus' && comboCount >= 2) {
     dmg += Math.floor(comboCount * 0.5);
   }
 
   defender.hp -= dmg;
 
   // Visual feedback
-  const isPlayerAttacking = aName === 'Neko';
+  const isPlayerAttacking = aName === 'Cyrus';
   if (isPlayerAttacking) {
     // Find monster position for effects
     const idx = entities.indexOf(defender);
@@ -1307,7 +1307,7 @@ function monsterTurn() {
     if (dist<=FOV_RADIUS && visible[e.y] && visible[e.y][e.x]) e.awake=true;
     if (!e.awake) continue;
     if (dist===1) {
-      if (doAttack(e, player, e.name, 'Neko')) { showDeath(); return; }
+      if (doAttack(e, player, e.name, 'Cyrus')) { showDeath(); return; }
     } else if (dist<=8) {
       const dx=Math.sign(player.x-e.x), dy=Math.sign(player.y-e.y);
       const moves = Math.random()<0.5
@@ -1336,14 +1336,14 @@ function pickupItems() {
     const it = items[i];
     if (it.x!==player.x||it.y!==player.y) continue;
     switch(it.type) {
-      case 'gold': player.gold+=it.amount; addLog(`Neko found ${it.name}! Nya~`,'pickup'); break;
-      case 'potion': player.potions++; addLog(`Neko found ${it.name}! (${player.potions} milks)`,'pickup'); break;
+      case 'gold': player.gold+=it.amount; addLog(`Cyrus found ${it.name}! Nya~`,'pickup'); break;
+      case 'potion': player.potions++; addLog(`Cyrus found ${it.name}! (${player.potions} milks)`,'pickup'); break;
       case 'weapon':
-        if (it.atk>player.atk){player.atk=it.atk;player.weapon=it.name;addLog(`Neko equips ${it.name}! (ATK:${it.atk})`,'pickup');}
+        if (it.atk>player.atk){player.atk=it.atk;player.weapon=it.name;addLog(`Cyrus equips ${it.name}! (ATK:${it.atk})`,'pickup');}
         else {const g=5+it.atk;player.gold+=g;addLog(`${it.name} too weak. Sold for ${g}g~`,'pickup');}
         break;
       case 'armor':
-        if (it.def>player.def){player.def=it.def;player.armor=it.name;addLog(`Neko equips ${it.name}! (DEF:${it.def})`,'pickup');}
+        if (it.def>player.def){player.def=it.def;player.armor=it.name;addLog(`Cyrus equips ${it.name}! (DEF:${it.def})`,'pickup');}
         else {const g=5+it.def;player.gold+=g;addLog(`${it.name} too weak. Sold for ${g}g~`,'pickup');}
         break;
       case 'powerup': {
@@ -1377,7 +1377,7 @@ function movePlayer(dx, dy) {
   if (monster) {
     // Attack animation
     animateAttack(dx, dy, () => {
-      if (doAttack(player, monster, 'Neko', monster.name)) {
+      if (doAttack(player, monster, 'Cyrus', monster.name)) {
         addLog(`${monster.name} defeated! Nya~!`, 'combat');
         player.xp += monster.xp;
         player.monstersSlain++;
@@ -1461,7 +1461,7 @@ function doRest() {
   if (animating||gameState!=='playing') return;
   if (player.hp<player.maxHp) {
     player.hp=Math.min(player.hp+1,player.maxHp);
-    addLog('Neko takes a nap... (+1 HP) zzz','info');
+    addLog('Cyrus takes a nap... (+1 HP) zzz','info');
   }
   monsterTurn(); turnCount++;
   updateVisibility(); updateHUD();
@@ -1473,7 +1473,7 @@ function doPotion() {
   const heal=15+player.floor*2;
   player.potions--;
   player.hp=Math.min(player.hp+heal,player.maxHp);
-  addLog(`Neko drinks warm milk~ (+${heal} HP, ${player.potions} left)`,'pickup');
+  addLog(`Cyrus drinks warm milk~ (+${heal} HP, ${player.potions} left)`,'pickup');
   monsterTurn(); turnCount++;
   updateVisibility(); updateHUD();
 }
@@ -1483,7 +1483,7 @@ function doStairs() {
   if (dungeon.map[player.y][player.x]!==T.STAIRS_DOWN){addLog('No stairs here, nya...','info');return;}
   player.floor++;
   if (player.floor>MAX_FLOOR){showWin();return;}
-  addLog(`Neko descends to floor ${player.floor}... *pitter patter*`,'descend');
+  addLog(`Cyrus descends to floor ${player.floor}... *pitter patter*`,'descend');
   spawnParticles(player.x*TILE_SIZE, 0.5, player.y*TILE_SIZE, 0xcc88ff, isMobile ? 12 : 20, 3, 1.2);
   loadFloor();
 }
@@ -1533,7 +1533,7 @@ function showWin() {
   showScreen('win-screen');
   document.getElementById('win-stats').innerHTML =
     `Conquered all <span style="color:#cc88ff">${MAX_FLOOR}</span> floors!<br>`+
-    `Level <span style="color:#88eebb">${player.level}</span> legendary neko<br>`+
+    `Level <span style="color:#88eebb">${player.level}</span> legendary cat<br>`+
     `<span style="color:#ffdd44">${player.gold}</span> gold<br>`+
     `<span style="color:#ff8899">${player.monstersSlain}</span> yokai defeated<br>`+
     `<span style="color:#99bbff">${turnCount}</span> paw steps`;
@@ -1560,7 +1560,7 @@ function startGame() {
 
   showScreen(null);
   buildNeonCity();
-  addLog('Neko enters the neon-lit downtown cave... *sniff sniff*','descend');
+  addLog('Cyrus enters the neon-lit downtown cave... *sniff sniff*','descend');
   addLog('Find the stairs on each floor. Survive 10 floors to win, nya~!','info');
   loadFloor();
 }
